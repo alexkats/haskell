@@ -57,20 +57,30 @@ CLOSED: [2017-03-26 вс 15:43]
 Еще важно, что строка - список символов, поэтому ~“” == []~.
 
 Функции на списках:
-+ ~head :: [a] \rightarrow a~
++ head
+~head :: [a] \rightarrow a~
 ~head [1,2,3] == 1~
-+ ~tail :: [a] \rightarrow [a]~
++ tail
+~tail :: [a] \rightarrow [a]~
 ~tail [1,2,3] == [2,3]~
-+ ~init :: [a] \rightarrow [a]~
++ init
+~init :: [a] \rightarrow [a]~
 ~init [1,2,3] == [1,2]~
-+ ~last :: [a] \rightarrow a~
++ last
+~last :: [a] \rightarrow a~
 ~last [1,2,3] == 3~
-+ ~drop 2 [1,2,3] == [3]~ (отбрасывает первые ~n~ элементов)
-+ ~take 1 [1,2,3] == [1]~ (берет первые ~n~ элементов)
-+ ~replicate 3 [1,2,3] == [[1,2,3],[1,2,3],[1,2,3]]~ (кидает в новый список данный ~n~ раз)
-+ ~zip [1,2,3] “abc” == [(1, ‘a’), (2, ‘b’), (3, ‘c’)]~ (берет 2 списка, образует пары по элементам списков и кидает в новый список, обрезает по короткому списку)
-+ ~unzip [(5, True), (10, False)] == ([5,10], [True,False])~ (обратное к ~zip~, возвращает пару из двух списков)
-+ ~zipWith max [10,5,1] [2,1,3] == [10,5,3]~ (берет каждый раз по элементу из каждого списка и применяет переданную функцию, кидает значение в новый список, обрезает по короткому списку опять же)
++ drop
+~drop 2 [1,2,3] == [3]~ (отбрасывает первые ~n~ элементов)
++ take
+~take 1 [1,2,3] == [1]~ (берет первые ~n~ элементов)
++ replicate
+~replicate 3 [1,2,3] == [[1,2,3],[1,2,3],[1,2,3]]~ (кидает в новый список данный ~n~ раз)
++ zip
+~zip [1,2,3] “abc” == [(1, ‘a’), (2, ‘b’), (3, ‘c’)]~ (берет 2 списка, образует пары по элементам списков и кидает в новый список, обрезает по короткому списку)
++ unzip
+~unzip [(5, True), (10, False)] == ([5,10], [True,False])~ (обратное к ~zip~, возвращает пару из двух списков)
++ zipWith
+~zipWith max [10,5,1] [2,1,3] == [10,5,3]~ (берет каждый раз по элементу из каждого списка и применяет переданную функцию, кидает значение в новый список, обрезает по короткому списку опять же)
 + Есть еще всякие ~takeWhile~, ~dropWhile~, ~splitAt~ (все берут предикат и как-то делят на 2 списка или 1), ~iterate~, ~reverse~ and so on.
 *** DONE Лямбды (анонимные функции)
 CLOSED: [2017-03-26 вс 15:44]
@@ -130,24 +140,33 @@ HOF (higher-order functions - функции высшего порядка) - п
 функции, которые в качестве аргументов могут принимать другие
 функции:
 
-+ ~apply :: Int \rightarrow Int \rightarrow (Int \rightarrow Int \rightarrow Int) \rightarrow Int~
++ apply
+~apply :: Int \rightarrow Int \rightarrow (Int \rightarrow Int \rightarrow Int) \rightarrow Int~
 ~apply a b f = f a b~
 ~x = apply 3 4 (\x y \rightarrow x + y)~
 ~y = apply 3 4 (+)~
-+ ~map :: (a \rightarrow b) \rightarrow [a] \rightarrow [b]~
++ map
+~map :: (a \rightarrow b) \rightarrow [a] \rightarrow [b]~
 ~map negate [2,1,3] == [-2,-1,-3]~
-+ ~filter :: (a \rightarrow Bool) \rightarrow [a] \rightarrow [a]~
++ filter
+~filter :: (a \rightarrow Bool) \rightarrow [a] \rightarrow [a]~
 ~filter odd [1,2,3,4,5] == [1,3,5]~
-+ ~foldr1 :: (a \rightarrow a \rightarrow a) \rightarrow [a] \rightarrow a~
++ foldr1
+~foldr1 :: (a \rightarrow a \rightarrow a) \rightarrow [a] \rightarrow a~
 ~foldr1 (+) [1,2,4] == 7~
-+ ~span :: (a \rightarrow Bool) \rightarrow [a] \rightarrow ([a], [a])~
++ span
+~span :: (a \rightarrow Bool) \rightarrow [a] \rightarrow ([a], [a])~
 ~span even [2,4,5,2,7] == ([2,4],[5,2,7])~
-+ ~partition even [2,4,5,2,7] == ([2,4,2],[5,7])~
-+ ~takeWhile isUpper~ "~HTMLXml~" ~==~ "~HTMLX~"
-+ ~uncurry :: (a \rightarrow b \rightarrow c) \rightarrow (a, b) \rightarrow c~
++ partition
+~partition even [2,4,5,2,7] == ([2,4,2],[5,7])~
++ takeWhile
+~takeWhile isUpper”HTMLXml” == ”HTMLX”~
++ uncurry
+~uncurry :: (a \rightarrow b \rightarrow c) \rightarrow (a, b) \rightarrow c~
 ~uncurry f (x, y) = f x y~
 ~uncurry (+) (3,4) == 7~
-+ ~curry :: ((a, b) \rightarrow c) \rightarrow a \rightarrow b \rightarrow c~
++ curry
+~curry :: ((a, b) \rightarrow c) \rightarrow a \rightarrow b \rightarrow c~
 ~curry f a b = f (a, b)~
 ~curry fst 3 4 == 3~
 ~curry snd 3 4 == 4~
@@ -293,8 +312,7 @@ data User = User { uid :: Int
 #+END_SRC
 Все эти поля - по сути геттеры (как в джаве). Не могут повторяться
 имена (хотя в ~GHC 8~ что-то хитрое появилось. чтобы избегать
-такого, но это не надо сейчас)
-
+такого, но это не надо сейчас).
 #+BEGIN_SRC haskell
 isIvan :: User \rightarrow Bool
 isIvan User { login = "Ivan" } = True
@@ -538,9 +556,9 @@ foldr f acc (x:xs) = f x (foldr f acc xs)
 foldr (+) 0 [1,2,3] == 1 + (2 + (3 + 0))
 #+END_SRC
 Вроде итак понятно, не знаю, что добавить. Можно сказать, что
-есть еще ~foldr~' - не особо ленивая версия ~foldl~. Просто
+есть еще ~foldr’~ - не особо ленивая версия ~foldl~. Просто
 ~foldl~ хранит выражение целиком, пока оно не потребуется, в
-итоге тратится дофига памяти. ~foldl~' не строит огромную
+итоге тратится дофига памяти. ~foldl’~ не строит огромную
 цепочку исполнения, он пытается каждый раз выполнить функцию.
 Суть в том, что там используется ~seq~, который каждый раз
 заставляет выражение вычислиться, на примере лучше видно:
@@ -741,7 +759,7 @@ infixr 1 =<<
 Законы:
 1. ~return a >>= f == f a~ - left identity
 2. ~m >>= return == m~ - right identity
-3. ~(m >>= f) >>= g == m >>= (\x \rightarrow f x >>= g) - associativity
+3. ~(m >>= f) >>= g == m >>= (\x \rightarrow f x >>= g)~ - associativity
 *** DONE Maybe monad
 CLOSED: [2017-03-26 вс 17:30]
 #+BEGIN_SRC haskell
@@ -878,13 +896,9 @@ instance Bifunctor Either where
 instance Bifunctor (\rightarrow) where -- не определен вроде как
 #+END_SRC
 Законы бифунктора:
-1. ~bimap id == id~
-~first id == id~
-~second id == id~
+1. ~bimap id == id~; ~first id == id~; ~second id == id~
 2. ~bimap f g == first f . second g~
-3. ~bimap (f . g) (h . i) == bimap f h . bimap g i~
-~first (f . g) == first f . first g~
-~second (h . i) == second h . second i~
+3. ~bimap (f . g) (h . i) == bimap f h . bimap g i~; ~first (f . g) == first f . first g~; ~second (h . i) == second h . second i~
 *** DONE Applicative
 CLOSED: [2017-03-26 вс 17:55]
 #+BEGIN_SRC haskell
