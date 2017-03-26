@@ -1,0 +1,1761 @@
+* TODO [8/16] Билеты
+** DONE [5/5] Lecture 1: Why FP and Haskell
+CLOSED: [2017-03-26 вс 15:36]
+*** DONE Плюсы функциональной чистоты
+CLOSED: [2017-03-26 вс 15:33]
++ БОльшие возможности для оптимизации
++ Чисто функциональные программы легче понимать и отлаживать, так как результат функции зависит только от входных значений – отлаживать функцию можно независимо от остальной программы, при этом ее всегда можно разбить на меньшие подфункции и отладить их отдельно.
++ Чистые функции намного проще объединять в композиции, так как между ними нет неявных связей в виде изменяемого состояния.
++ Чисто функциональные программы проще сделать параллельными. Чистая функция всегда является ~thread-safe~, т.е. ее можно вызывать из нескольких потоков одновременно.
++ Чистые функции не изменяют глобального состояния программы и системы в целом.
+*** DONE Плюсы неизменяемости (иммутабельности)
+CLOSED: [2017-03-26 вс 15:34]
++ После создания объекта, методы не изменяют существующие, а возвращают новый объект.
++ Если объекты неизменяемые, наличие нескольких ссылок на один объект не создает проблем, такие ссылки можно без опасений передавать и хранить в структурах данных.
++ Поведение неизменяемых объектов очень простое, так как их состояние не меняется. Понимать программы с их использованием намного проще.
++ Неизменяемые объекты не зависят от истории, так как объекты никак не меняются при вызове их методов.
++ Нет проблем с хранением объектов в коллекциях, т.к., например, значение хэш-функции в хэш-таблице для неизменяемого объекта не изменится, а значит мы не потеряем его.
++ Нет изменяемых объектов - нет проблем с многопоточным доступом.
+*** DONE Плюсы ленивости
+CLOSED: [2017-03-26 вс 15:35]
++ Можно присваивать значения в любом порядке, т.к. при ленивых  вычислениях вычисление значения произойдет только при его  использовании.
++ Программа работает более эффективно, так как вычисления происходят только в тех случаях, когда это действительно нужно.
++ Можно использовать бесконечные структуры данных (бесконечные списки, бесконечные деревья). Можно манипулировать ими так же, как и обычными – главное, чтобы никогда не вычислялся весь список целиком.
++ Можно использовать все это добро в pattern matching, по списку хотя бы, он опять же не будет вычисляться целиком, например, удобно взять только голову списка, не вычисляя его целиком.
+*** DONE Преимущества статической типизации
+CLOSED: [2017-03-26 вс 15:35]
++ Раннее обнаружение ошибок – на этапе компиляции, а не выполнения. На удивление часто программа на SML или Haskell работает правильно сразу, как только ее наконец удается скомпилировать.
++ Поддерживаемость больших проектов при статической типизации намного выше, так как изменения могут быть верифицированы компилятором, и типы являются частью документации программы, облегчающие ее понимание.
++ Для статически типизированных языков проще делать автоматизированную обработку программ (автоматический рефакторинг, как в средах IDEA или Eclipse).
++ Для статически типизированных языков проще оптимизация кода, так что в среднем они эффективнее динамически типизированных.
+*** DONE Удачные конструкции языка Haskell
+CLOSED: [2017-03-26 вс 15:36]
++ Замыкания (closures) – их трудно полноценно реализовать в языке без сборки мусора типа C++ (upward funarg problem)
++ Каррирование (currying) – то же, что для замыканий плюс проблемы с перегрузкой функций по числу аргументов, как принято во многих императивных языках
++ Вывод типов (type inference) – глобальный вывод типов накладывает серьезные ограничения на систему типов; так, наличие наследования резко ослабляет возможности вывода типов
++ Сопоставление с образцом (pattern matching)
++ Классы типов (type classes)
+** DONE [17/17] Lecture 2: Basic syntax
+CLOSED: [2017-03-26 вс 16:11]
+*** DONE Отступы важны и все такое прочее!!!
+CLOSED: [2017-03-26 вс 15:36]
+Ну просто отступы реально играют роль :)
+*** DONE Разница между statement и expression
+CLOSED: [2017-03-26 вс 15:37]
+Существуют понятия statement (хз про человеческий перевод, наверное, что-то типо оператора (это значит - инструкция)) и expression (выражение). В императивных языках есть и то, и другое. В хаскеле все является выражениями (ну или почти все). Короче, разницу умею объяснять только маханием руками с примерами, написать не могу.
+*** DONE Функции - обычные и параметрические
+CLOSED: [2017-03-26 вс 15:39]
+Функции бывают обычными и параметрическими. Сказать что-то про то, как объявляются, вызываются и т.п. (совсем базовые вещи).
+
+Полиморфизм - бывает двух типов - параметрический и ~ad-hoc~. Второе (частный случай) - перегрузка методов (в духе ~int length(String s)~
+и ~int length(Locale l, String s)~ в ~Java~). В хаскеле же параметрический полиморфизм. По сути это просто параметрические типы в функциях (а-ля generics в java).
+~Ad-hoc~ полиморфизм в хаскеле тоже есть - это на самом деле классы типов.
+*** DONE Списки и функции на списках
+CLOSED: [2017-03-26 вс 15:43]
+Списки - классная вещь, используются везде. Важно сказать про образование списка.
+В духе ~[1,2,3]~ есть синтаксический сахар и на самом деле происходит такое ~1:2:3:[]~.
+Еще важно, что строка - список символов, поэтому ~“” == []~.
+
+Функции на списках:
++ ~head :: [a] \rightarrow a~
+~head [1,2,3] == 1~
++ ~tail :: [a] \rightarrow [a]~
+~tail [1,2,3] == [2,3]~
++ ~init :: [a] \rightarrow [a]~
+~init [1,2,3] == [1,2]~
++ ~last :: [a] \rightarrow a~
+~last [1,2,3] == 3~
++ ~drop 2 [1,2,3] == [3]~ (отбрасывает первые ~n~ элементов)
++ ~take 1 [1,2,3] == [1]~ (берет первые ~n~ элементов)
++ ~replicate 3 [1,2,3] == [[1,2,3],[1,2,3],[1,2,3]]~ (кидает в новый список данный ~n~ раз)
++ ~zip [1,2,3] “abc” == [(1, ‘a’), (2, ‘b’), (3, ‘c’)]~ (берет 2 списка, образует пары по элементам списков и кидает в новый список, обрезает по короткому списку)
++ ~unzip [(5, True), (10, False)] == ([5,10], [True,False])~ (обратное к ~zip~, возвращает пару из двух списков)
++ ~zipWith max [10,5,1] [2,1,3] == [10,5,3]~ (берет каждый раз по элементу из каждого списка и применяет переданную функцию, кидает значение в новый список, обрезает по короткому списку опять же)
++ Есть еще всякие ~takeWhile~, ~dropWhile~, ~splitAt~ (все берут предикат и как-то делят на 2 списка или 1), ~iterate~, ~reverse~ and so on.
+*** DONE Лямбды (анонимные функции)
+CLOSED: [2017-03-26 вс 15:44]
+Лямбды - анонимные функции. Синтаксис на примере лучше:
+#+BEGIN_SRC haskell
+l = [2,1,3]
+squares = map (\x \rightarrow x * x) l
+lambdaMulAdd = \x y z \rightarrow x * y + z
+#+END_SRC
+*** DONE Let expression
+CLOSED: [2017-03-26 вс 15:45]
+#+BEGIN_SRC haskell
+z :: Int
+z = let l = [2,1,3]
+        h = head l
+    in h + 10
+#+END_SRC
+*** DONE Where clause
+CLOSED: [2017-03-26 вс 15:46]
+#+BEGIN_SRC haskell
+pythagoras :: Double \rightarrow Double \rightarrow Double
+pythagoras a b = a2 + b2
+  where
+    square x = x ^ 2
+    a2       = square a
+    b2       = square b
+#+END_SRC
+*** DONE If expression
+CLOSED: [2017-03-26 вс 15:46]
+#+BEGIN_SRC haskell
+f :: Integer \rightarrow Integer
+f n = if n <= 1 then 1 else n * f (n - 1)
+#+END_SRC
+*** DONE Guards
+CLOSED: [2017-03-26 вс 15:47]
+#+BEGIN_SRC haskell
+collatzSum :: Integer \rightarrow Integer
+collatzSum n
+    | n < 0     = n
+    | n == 1    = 1
+    | even n    = n + collatzSum (n `div` 2)
+    | otherwise = n + collatzSum (3 * n + 1)
+#+END_SRC
+*** DONE Case expression
+CLOSED: [2017-03-26 вс 15:48]
+#+BEGIN_SRC haskell
+getFont :: Int \rightarrow String
+getFont n = case n of
+    0 \rightarrow "PLAIN"
+    1 \rightarrow "BOLD"
+    2 \rightarrow "ITALIC"
+    _ \rightarrow "UNKNOWN"
+#+END_SRC
+*** DONE Функции высшего порядка
+CLOSED: [2017-03-26 вс 15:55]
+HOF (higher-order functions - функции высшего порядка) - по сути
+функции, которые в качестве аргументов могут принимать другие
+функции:
+
++ ~apply :: Int \rightarrow Int \rightarrow (Int \rightarrow Int \rightarrow Int) \rightarrow Int~
+~apply a b f = f a b~
+~x = apply 3 4 (\x y \rightarrow x + y)~
+~y = apply 3 4 (+)~
++ ~map :: (a \rightarrow b) \rightarrow [a] \rightarrow [b]~
+~map negate [2,1,3] == [-2,-1,-3]~
++ ~filter :: (a \rightarrow Bool) \rightarrow [a] \rightarrow [a]~
+~filter odd [1,2,3,4,5] == [1,3,5]~
++ ~foldr1 :: (a \rightarrow a \rightarrow a) \rightarrow [a] \rightarrow a~
+~foldr1 (+) [1,2,4] == 7~
++ ~span :: (a \rightarrow Bool) \rightarrow [a] \rightarrow ([a], [a])~
+~span even [2,4,5,2,7] == ([2,4],[5,2,7])~
++ ~partition even [2,4,5,2,7] == ([2,4,2],[5,7])~
++ ~takeWhile isUpper "HTMLXml" == "HTMLX"~
++ ~uncurry :: (a \rightarrow b \rightarrow c) \rightarrow (a, b) \rightarrow c~
+~uncurry f (x, y) = f x y~
+~uncurry (+) (3,4) == 7~
++ ~curry :: ((a, b) \rightarrow c) \rightarrow a \rightarrow b \rightarrow c~
+~curry f a b = f (a, b)~
+~curry fst 3 4 == 3~
+~curry snd 3 4 == 4~
+*** DONE Частичное применение
+CLOSED: [2017-03-26 вс 15:56]
+Сказать что-то в духе, что мы можем применять функции частично и
+это классно. Например, такая штука:
+#+BEGIN_SRC haskell
+map :: (a \rightarrow b) \rightarrow [a] \rightarrow [b]
+add5 :: [Int] \rightarrow [Int]
+add5 = map (+5)
+#+END_SRC
+А потом просто делаем ~add5 [1,2,3]~ и получаем ~[6,7,8]~, и
+удобно, не надо делать ~map (+5) [1,2,3]~, особенно если нам надо
+постоянно прибавлять 5 к куче списков. Искусственный пример,
+конечно, но за идею сойдет.
+*** DONE Что-то про flip
+CLOSED: [2017-03-26 вс 16:00]
+#+BEGIN_SRC haskell
+flip :: (a \rightarrow b \rightarrow c) \rightarrow b \rightarrow a \rightarrow c
+flip f b a = f a b
+show2 :: Int \rightarrow Int \rightarrow String
+show2 x y = show x ++ " and " ++ show y
+showSnd, showFst, showFst' :: Int \rightarrow String
+showSnd = show2 1
+showFst = flip show2 2
+showFrs' = (`show2` 2)
+id :: a \rightarrow a
+flip id :: b \rightarrow (b \rightarrow c) \rightarrow c
+($) :: (a \rightarrow b) \rightarrow a \rightarrow b
+flip ($) :: a \rightarrow (a \rightarrow c) \rightarrow c
+#+END_SRC
+*** DONE Pattern matching
+CLOSED: [2017-03-26 вс 16:00]
+Можно помахать руками и выдумать любой пример, нет смысла писать.
+*** DONE Композиция функций и применение
+CLOSED: [2017-03-26 вс 16:05]
+#+BEGIN_SRC haskell
+infixr 9 . -- правая ассоциативность, 9 приоритет (max), оператор (.)
+(.) :: (b \rightarrow c) \rightarrow (a \rightarrow b) \rightarrow a \rightarrow c
+f . g = \x \rightarrow f (g x)
+
+infixl 0 $ -- левая ассоциативность, 0 приоритет (min) оператор ($)
+($) :: (a \rightarrow b) \rightarrow a \rightarrow b
+f $ x = f x
+
+incNegate x = negate (x + 1)
+incNegate x = negate $ x + 1
+incNegate x = (negate . (+1)) x
+incNegate x = negate . (+1) $ x
+incNegate = negate . (+1) -- \eta-редукция
+
+stringsTransform :: [String] \rightarrow [String]
+stringsTransform l = map (\s \rightarrow map toUpper s) (filter (\s \rightarrow length s == 5) l)
+stringsTransform l = map (\s \rightarrow map toUpper s) $ filter (\s \rightarrow length s == 5) l
+stringsTransform l = map (map toUpper) $ filter ((==5) . length) l
+stringsTransform = map (map toUpper) . filter ((==5) . length)
+#+END_SRC
+*** DONE Ranges
+CLOSED: [2017-03-26 вс 16:05]
+#+BEGIN_SRC haskell
+[0..5] == [0,1,2,3,4,5]
+[0, 2..5] == [0,2,4]
+#+END_SRC
+*** DONE List comprehension
+CLOSED: [2017-03-26 вс 16:08]
+#+BEGIN_SRC haskell
+[x | x \leftarrow [1..10], even x] == [2,4,6,8,10]
+filter even [1..10] == [2,4,6,8,10]
+[if even x then "!" else "?" | x \leftarrow [1..5]] == ["?","!","?","!","?"]
+[x * y | x \leftarrow [1,3,5], y \leftarrow [2,4,6], x * y >= 10] == [12,18,10,20,30]
+
+primes :: [Int]
+primes = filterPrime [2..]
+  where
+    filterPrime (p:xs) = p : filterPrime [x | x \leftarrow xs, x `mod` p /= 0]
+#+END_SRC
+** DONE [10/10] Lecture 3: Datas, Classes, Instances
+CLOSED: [2017-03-26 вс 16:41]
+*** DONE Типы и классы типов
+CLOSED: [2017-03-26 вс 16:15]
+~:t~ - показывает тип того, что идет за ней
+~::~ - дословно "имеет тип"
+~:t fst == fst :: (a, b) \rightarrow a~
+
+Класс типов - интерфейс, определяющий некоторое поведение.
+Классы типов:
+1. ~Eq~ - класс, имеющий проверку на равенство
+2. ~Ord~ - класс, предназначенный для типов, поддерживающих отношение порядка
+3. ~Show~ - типы этого класса могу быть представлены как строки
+4. ~Read~ - обратное к ~Show~, читает строку и преобразует в значение, тип которого является экземпляром класса ~Read~
+5. ~Enum~ - последовательно упорядоченные типы, значения можно пронумеровать
+6. ~Bounded~ - имеет верхнюю и нижнюю границы
+7. ~Num~ - числа
+8. ~Floating~ - числа с плавающей точкой
+9. ~Integral~ - целые числа
+*** DONE Type aliases
+CLOSED: [2017-03-26 вс 16:16]
+Представление одного типа разными способами:
+#+BEGIN_SRC haskell
+type String = [Char]
+type BinaryIntFunction = Int \rightarrow Int \rightarrow Int
+#+END_SRC
+*** DONE Объявление своего типа данных (Algebraic Data Types)
+CLOSED: [2017-03-26 вс 16:22]
+В общем, может быть такая штука как сумма типов: ~ST = T~_{1} ~+ ... + T~_{n} (по сути ~enum~ - перечисления, но это, скорее, частный случай).
+Бывает произведение типов: ~PT = T~_{1} ~\times ... \times T~_{n} (частный случай - структуры в плюсах).
+В хаскеле есть ADT (алгебраические типы данных):
+#+BEGIN_SRC haskell
+T ::= Int | Double | Char | ...
+ADT ::= T | ADT + ADT | ADT \times ADT
+
+data Color = Red | Green | Blue
+
+data User = User Int String String
+getUid :: User \rightarrow Int
+getUid (User uid _ _) = uid
+
+data Vector a = Vector2D a a | Vector3D a a a
+
+data Maybe a = Nothing | Just a
+
+data Either a b = Left a | Right b -- Возможная ошибка с результатом ошибки
+
+data List = Nil | Cons a (List a)
+
+data Shape = Circle Float Float Float | Rectangle Float Float Float Float
+:t Circle == Float \rightarrow Float \rightarrow Float \rightarrow Shape
+
+data Person = Person { firstName :: String
+                     , lastName :: String
+                     , age :: Int
+                     } deriving (Show)
+#+END_SRC
+*** DONE Record syntax
+CLOSED: [2017-03-26 вс 16:24]
+Что-то такое:
+#+BEGIN_SRC haskell
+data User = User { uid :: Int
+                 , login :: String
+                 , password :: String
+                 }
+#+END_SRC
+Все эти поля - по сути геттеры (как в джаве). Не могут повторяться
+имена (хотя в ~GHC 8~ что-то хитрое появилось. чтобы избегать
+такого, но это не надо сейчас)
+
+#+BEGIN_SRC haskell
+isIvan :: User \rightarrow Bool
+isIvan User { login = "Ivan" } = True
+isIvan _                       = False
+#+END_SRC
+*** DONE Классы типов (Type classes)
+CLOSED: [2017-03-26 вс 16:27]
+#+BEGIN_SRC haskell
+class Eq a where
+    (==) :: a \rightarrow a \rightarrow Bool
+    (/=) :: a \rightarrow a \rightarrow Bool
+
+    x == y = not (x /= y)
+    x /= y = not (x == y)
+
+    -- == | /= - minimal complete definition
+
+class Printable p where
+    printMe :: p \rightarrow String
+
+data Foo = Foo
+
+instance Printable Foo where
+    printMe Foo = "Foo"
+
+helloP :: Printable p \Rightarrow p \rightarrow String
+helloP p = "Hello, " ++ printMe p ++ "!"
+
+class I a where
+    measure :: a \rightarrow Int \rightarrow Double
+
+class J a where
+    getParameter :: a \rightarrow Int
+
+doMeasure :: (I a, J a) \Rightarrow a \rightarrow Double
+doMeasure obj = measure obj $ getParameter obj
+#+END_SRC
+*** DONE Deriving
+CLOSED: [2017-03-26 вс 16:28]
+Короче, ~deriving~ может делаться только для определенных
+классов типов по умолчанию. Собственно это ~Eq~, ~Ord~, ~Bounded~,
+~Show~, ~Read~ и ~Enum~. При этом внутри ~data~ должны быть типы,
+которые тоже инстансы этих классов типов.
+*** DONE Super classes
+CLOSED: [2017-03-26 вс 16:30]
+#+BEGIN_SRC haskell
+data Ordering = LT | EQ | GT
+
+class Eq a \Rightarrow Ord a where
+    compare :: a \rightarrow a \rightarrow Ordering
+    (<), (<=), (>=), (>) :: a \rightarrow a \rightarrow Bool
+
+    compare x y
+        | x == y    = EQ
+        | x <= y    = LT
+        | otherwise = GT
+
+    x <= y = compare x y /= GT
+    x < y  = compare x y == LT
+    x >= y = compare x y /= LT
+    x > y  = compare x y == GT
+#+END_SRC
+*** DONE Type classes as Dictionaries
+CLOSED: [2017-03-26 вс 16:33]
+#+BEGIN_SRC haskell
+data EqC a = EqDict { eq :: a \rightarrow a \rightarrow Bool
+                    , neq :: a \rightarrow a \rightarrow Bool
+                    }
+
+instanceEqCWithEq :: (a \rightarrow a \rightarrow Bool) \rightarrow EqC a
+instanceEqCWithEq myEq = EqDict { eq = myEq
+                                , neq = \x y \rightarrow not $ x `myEq` y
+                                }
+
+instanceEqCWithNeq :: (a \rightarrow a \rightarrow Bool) \rightarrow EqC a
+instanceEqCWithNeq myNeq = EqDict { eq = \x y \rightarrow not $ x `myNeq` y
+                                  , neq = myNeq
+                                  }
+
+isInList :: EqC a \rightarrow a \rightarrow [a] \rightarrow Bool
+isInList eqc x = any (eq eqc x)
+#+END_SRC
+*** DONE Datatype Contexts
+CLOSED: [2017-03-26 вс 16:36]
+#+BEGIN_SRC haskell
+data (Ord a) \Rightarrow OrderedList a = Nil | Node { value :: a
+                                          , next :: OrderedList a
+                                          }
+#+END_SRC
+Суть в том, что мы делаем ограничение на параметрический тип
+внутри объявления нашего типа данных. Это очень фигово, ибо нам
+не всегда требуется, чтобы наш тип данных имел ограничение,
+например, нам необязательно знать, что вставляемый элемент в
+список является инстансом ~Ord~:
+~insert :: a \rightarrow OrderedList a \rightarrow OrderedList a~
+Так мы сделать не может, ибо нужно написать ограничение на ~a~,
+но оно здесь лишнее и абсолютно не нужно. Поэтому делать
+ограничения на типы данных фигово и вообще никому не нужно и
+вообще устарело (Deprecated).
+*** DONE Modules cheatsheet
+CLOSED: [2017-03-26 вс 16:40]
+#+BEGIN_SRC haskell
+module Lib
+    ( module Exports
+    , FooB1 (..), FooB3 (FF)
+    , Data.List.nub, C.isUpper
+    , fooA, bazA, BAZB.isLower
+    ) where -- тут просто указываем то, что хотим экспортировать
+
+import           Foo.A
+import           Foo.B (FooB2 (MkB1), FooB3 (..)) -- импортируем определенные штуки из модулей
+import           Prelude hiding (print) -- импортируем все, кроме print
+import           Bar.A (print, (<||>))
+import           Bar.B ()
+
+import           Baz.A as BAZA
+import qualified Data.List
+import qualified Data.Char as C hiding (chr)
+import qualified Baz.B as BAZB (isLower) -- классный импорт, просто говорим, с каким именем хотим использовать импортированный модуль
+
+import qualified Foo.X as Exports
+import qualified Foo.Y as Exports
+#+END_SRC
+** DONE [8/8] Lecture 4: Kinda Monoids
+CLOSED: [2017-03-26 вс 17:22]
+*** DONE Newtype
+CLOSED: [2017-03-26 вс 16:45]
+Тоже позволяет создавать типы данных, как и ~data~.
+Цель ~newtype~ - переименовать существующий тип, дав ему новый.
+Можем делать pattern matching и создавать значение,
+используя конструктор, как в ~data~. На ~newtype~ есть некоторые
+ограничения. Там должен быть один конструктор с ровно одним
+полем. Но параметрических может быть сколько угодно. Примеры:
+#+BEGIN_SRC haskell
+newtype Param a b = Param (Either a b)
+newtype Record = Record { getInt :: Int }
+newtype Good = Good Int
+#+END_SRC
+Одно из ключевых отличий: ~data~ нужно хранить какую-то
+информацию о себе в runtime, например, данные о том, какой
+конструктор был использован при создании. У ~newtype~ только
+один конструктор, поэтому в runtime все это оптимизируется,
+ибо нафиг не надо знать ничего о конструкторе, по сути он там
+даже не существует. В частности, можно показать, что
+pattern matching по-разному работает на ~undefined~:
+#+BEGIN_SRC haskell
+case D undefined of D _ \rightarrow 1 -- OK, конструктор матчится, больше ничего не нужно
+case undefined of D _ \rightarrow 1 -- error, undefined считается, когда пытается счатчиться по конструктору и кидает ошибку
+case N undefined of N _ \rightarrow 1 -- ожидаемо OK
+case undefined of N _ \rightarrow 1 -- OK, потому что в рантайме нет конструктора, соответственно он просто матчится по значению, а оно может быть любым, поэтому undefined не считается и все классно
+#+END_SRC
+*** DONE Фантомные типы
+CLOSED: [2017-03-26 вс 16:48]
+Фантомный тип - параметризованный тип, у которого не все
+параметры используются в правой части:
+#+BEGIN_SRC haskell
+newtype Coin color = Coin { getCoint :: Int }
+
+data Blue
+data Red
+
+blue = undefined :: Blue
+red = undefined :: Red
+
+createCoins :: color \rightarrow Int \rightarrow Coin color
+createCoins _ = Coin
+
+c1 = createCoins blue 10
+c2 = Coin 5 :: Coin Red
+
+addCoins :: Coin color \rightarrow Coin color \rightarrow Coin color
+addCoins (Coin a) (Coin b) = Coin (a + b)
+#+END_SRC
+Нафиг надо? Суть в том. что это некая проверка. В последней
+функции видно, что мы не можем сложить монеты разных цветов,
+это довольно классное утверждение, нам не нужно хранить какой-то
+цвет у монеты в значении, это просто будет вшито в параметрический
+тип, что довольно удобно.
+*** DONE Kinds
+CLOSED: [2017-03-26 вс 16:53]
+Kind - по сути тип типа
+#+BEGIN_SRC haskell
+Maybe :: * \rightarrow *
+Maybe String :: *
+[] :: * \rightarrow *
+[] Int :: *
+(\rightarrow) :: * \rightarrow * \rightarrow *
+(\rightarrow) Int :: * \rightarrow *
+#+END_SRC
+Kind polymorphism:
+#+BEGIN_SRC haskell
+data Computable a f = Computation (f a) a
+Computable :: * \rightarrow (* \rightarrow *) \rightarrow *
+Computable String :: (* \rightarrow *) \rightarrow *
+Computable INt Maybe :: *
+
+data IntComputation f = MkIntComp (f Int) -- 1 способ
+type IntComputation f = Computable Int f -- 2 способ
+IntComputation :: (* \rightarrow *) \rightarrow *
+
+-- GHC 8 (-XTypeInType)
+data PolyComputable (f :: k \rightarrow *) (a :: k) = PolyComputation (f a)
+PolyComputable :: (k \rightarrow *) \rightarrow k \rightarrow *
+PolyComputable Maybe :: * \rightarrow *
+PolyComputable IntComputation :: (* \rightarrow *) \rightarrow *
+
+-- Constaint kind
+type CustomC a = (Read a, Num a)
+foo :: CustomC a \Rightarrow String \rightarrow a \rightarrow a
+CustomC :: * \rightarrow Constaint
+
+type SDict p = p \Rightarrow Int
+SDict :: Constraint \rightarrow *
+foo :: SDict (Ord a)
+#+END_SRC
+*** DONE Higher kinded classes
+CLOSED: [2017-03-26 вс 16:54]
+В общем идея в том, что штуки вроде ~class Box b where ...~
+называются higher kinded classes. Идея как и с higher
+order functions, только для kind-ов. Тут у штуки ~b~
+kind ~* \rightarrow *~, и теперь становится понятно, какие
+параметризованные типы можно подставлять вместо ~b~. Например,
+~Maybe~ имеет kind ~* \rightarrow *~, значит можно сделать
+~instance Box Maybe where ...~. Короче удобно чекать такие штуки
+и смотреть, что не так в итоге, поэтому разбираться в kind-ах
+классно.
+*** DONE Foldr and foldl
+CLOSED: [2017-03-26 вс 16:59]
+#+BEGIN_SRC haskell
+foldl :: Foldable t \Rightarrow (b \rightarrow a \rightarrow b) \rightarrow b \rightarrow t a \rightarrow b
+foldr :: Foldable t \Rightarrow (a \rightarrow b \rightarrow b) \rightarrow b \rightarrow t a \rightarrow b
+
+foldl _ acc []     = acc
+foldl f acc (x:xs) = foldl (f acc x) xs
+
+foldl (+) 0 [1,2,3] == (((0 + 1) + 2) + 3)
+
+foldr _ acc []     = acc
+foldr f acc (x:xs) = f x (foldr f acc xs)
+
+foldr (+) 0 [1,2,3] == 1 + (2 + (3 + 0))
+#+END_SRC
+Вроде итак понятно, не знаю, что добавить. Можно сказать, что
+есть еще ~foldl'~ - не особо ленивая версия ~foldl~. Просто
+~foldl~ хранит выражение целиком, пока оно не потребуется, в
+итоге тратится дофига памяти. ~foldl'~ не строит огромную
+цепочку исполнения, он пытается каждый раз выполнить функцию.
+Суть в том, что там используется ~seq~, который каждый раз
+заставляет выражение вычислиться, на примере лучше видно:
+#+BEGIN_SRC haskell
+foldl' (+) 1 (2:3:[]) -- раскроется в:
+let new = 1 + 2
+new `seq` foldl' (+) new (3:[])
+#+END_SRC
+*** DONE Monoid
+CLOSED: [2017-03-26 вс 17:06]
+#+BEGIN_SRC haskell
+class Monoid m where
+    mempty :: m
+    mappend :: m \rightarrow m \rightarrow m
+
+    mconcat :: [m] \rightarrow m
+
+infixr 6 <>
+(<>) :: Monoid m \Rightarrow m \rightarrow m \rightarrow m
+(<>) = mappend
+
+newtype Sum a = Sum { getSum :: a }
+newtype Product a = Product { getProduct :: a }
+
+instance Num a \Rightarrow Monoid (Sum a) where
+    mempty = Sum 0
+    mappend x y = Sum (getSum x + getSum y)
+
+instance Product a \Rightarrow Monoid (Product a) where
+    mempty = Product 1
+    mappend x y = Product (getProduct x * getProduct y)
+
+instance Monoid [a] where
+    mempty = []
+    mappend xs ys = xs ++ ys
+
+instance Monoid a \Rightarrow Monoid (Maybe a) where
+    mempty = Nothing
+    mappend Nothing m         = Nothing
+    mappend m Nothing         = Nothing
+    mappend (Just x) (Just y) = Just (mappend x y)
+
+instance (Monoid a, Monoid b) \Rightarrow Monoid (a, b) where
+    mempty = (mempty, mempty)
+    mappend (a1, b1) (a2, b2) = (mappend a1 a2, mappend b1 b2)
+
+instance Monoid b \Rightarrow Monoid (a \rightarrow b) where
+    mempty _ = mempty
+    mappend f g x = f x `mappend` g x
+
+instance Monoid Ordering where
+    mempty = EQ
+    mappend LT _ = LT
+    mappend EQ y = y
+    mappend GT _ = GT
+#+END_SRC
+Finger Tree - какая-то хрень, нафиг никому не нужная и вообще
+лажа, но вроде персистентное дерево (хранит историю изменений),
+которое почему-то удобно использовать в ФП именно, наверное,
+удобно реализовывать. А еще, судя по всему, можно из этого
+запросто сделать инстанс моноида, но мне лень разбираться.
+Иначе нафига это в теме про моноиды.
+*** DONE Foldable type class
+CLOSED: [2017-03-26 вс 17:08]
+#+BEGIN_SRC haskell
+class Foldable t where
+    fold :: Monoid m \Rightarrow t m \rightarrow m
+    foldMap :: Monoid m \Rightarrow (a \rightarrow m) \rightarrow t a \rightarrow m
+    foldr :: (a \rightarrow b \rightarrow b) \rightarrow b \rightarrow t a \rightarrow b
+
+    foldMap f = foldr (mappend . f) mempty
+
+    -- foldMap | foldr - minimal complete definition
+
+instance Foldable [] where
+    foldr = List.foldr
+
+instance Foldable Maybe where
+    foldr _ z Nothing  = z
+    foldr f z (Just x) = f x z
+
+instance Foldable (Either a) where
+    foldMap _ (Left _)  = mempty
+    foldMap f (Right y) = f y
+#+END_SRC
+*** DONE [8/8] Language extensions
+CLOSED: [2017-03-26 вс 17:21]
+**** DONE TypeSynonymInstances
+CLOSED: [2017-03-26 вс 17:10]
+Разрешает делать инстансы для синонимов типов (по стандарту нельзя):
+#+BEGIN_SRC haskell
+{-# LANGUAGE TypeSynonymInstances #-}
+
+module MessageInstance where
+
+data Message = Message String String Int String
+type MSG = Message
+
+instance Monoid MSG where
+    ...
+#+END_SRC
+**** DONE FlexibleInstances
+CLOSED: [2017-03-26 вс 17:11]
+По умолчанию можно передавать только параметризованные типы в
+инстанс, обходим с помощью этого расширения:
+#+BEGIN_SRC haskell
+data Tree a = Leaf | Node a (Tree a) (Tree a)
+
+instance Ord (Tree Int) where
+    ...
+#+END_SRC
+**** DONE GeneralizedNewtypeInstances
+CLOSED: [2017-03-26 вс 17:12]
+По умолчанию может у ~newtype~ сделать ~deriving~ только ~Eq~,
+~Ord~, ~Enum~ и ~Bounded~. Расширение позволяет это обойти и
+сделать так:
+#+BEGIN_SRC haskell
+newtype Size = Size Int deriving (Show, Read, Eq, Ord, Num)
+#+END_SRC
+**** DONE MultiParamTypeClasses
+CLOSED: [2017-03-26 вс 17:14]
+Изначально не можем сделать класс типов с несколькими параметрами, теперь можем:
+#+BEGIN_SRC haskell
+class Convertable a b where
+    convert :: a \rightarrow b
+
+convertApply :: Convertable a b \Rightarrow (b \rightarrow c) \rightarrow a \rightarrow c
+convertApply f x = f $ convert x
+#+END_SRC
+**** DONE DuplicateRecordFields
+CLOSED: [2017-03-26 вс 17:16]
+Теперь можем использовать одинаковые названия полей у разных
+~data~ в record syntax:
+#+BEGIN_SRC haskell
+data Man = Man { name :: String } deriving (Show)
+data Cat = Cat { name :: String } deriving (Show)
+
+shoutOnHumanBeing :: Man \rightarrow String
+shoutOnHumanBeing man = (name :: Man \rightarrow String) man ++ "!!1!"
+
+isGrumpy :: Cat \rightarrow Bool
+isGrumpy Cat { name = "Grumpy" } = True
+isGrumpy _                       = False
+#+END_SRC
+**** DONE MultiWayIf
+CLOSED: [2017-03-26 вс 17:18]
+Само за себя говорит - ~guards~ внутри ~if~:
+#+BEGIN_SRC haskell
+fn :: Int \rightarrow Int \rightarrow String
+fn x y = if | x == 1    \rightarrow "a"
+            | y <  2    \rightarrow "b"
+            | otherwise \rightarrow "C"
+
+main = putStrLn $ fn 3 4 -- should print "c"
+#+END_SRC
+**** DONE ViewPatterns
+CLOSED: [2017-03-26 вс 17:20]
+Прикольная штука, которая позволяет в pattern matching вызвать
+некую функцию просмотра внутри паттерна:
+#+BEGIN_SRC haskell
+isZeroSum :: (Eq a, Num a) \Rightarrow [a] \rightarrow Bool
+isZeroSum (sum \rightarrow 0) = True
+isZeroSum _         = False
+#+END_SRC
+**** DONE RecordWildCards
+CLOSED: [2017-03-26 вс 17:21]
+Разрешает не писать кучу ненужного дерьма в record syntax:
+#+BEGIN_SRC haskell
+data User = User { uid :: Int
+                 , login :: String
+                 , password :: String
+                 } deriving (Show)
+
+toUnsafeString :: User \rightarrow String
+toUnsafeString User { uid = 0, .. } = "ROOT: " ++ login ++ ", " ++ password
+toUnsafeString User {..}            = login ++ ":" ++ password
+#+END_SRC
+** DONE [8/8] Lecture 5: Monads, part 1
+CLOSED: [2017-03-26 вс 17:40]
+*** DONE Монада и ее законы
+CLOSED: [2017-03-26 вс 17:29]
+Монада - контейнер для вычислений
+
+#+BEGIN_SRC haskell
+class Monad m a where
+    return :: a \rightarrow m a -- return
+    (>>=) :: m a \rightarrow (a \rightarrow m b) \rightarrow m b -- bind
+
+    (>>) :: m a \rightarrow m b \rightarrow m b -- then
+    m >> k = m >>= \_ \rightarrow k
+
+(=<<) :: Monad m \Rightarrow (a \rightarrow m b) \rightarrow m a \rightarrow m b
+f =<< x = x >>= f
+
+infixl 1 >>, >>=
+infixr 1 =<<
+#+END_SRC
+Законы:
+1. ~return a >>= f == f a~ - left identity
+2. ~m >>= return == m~ - right identity
+3. ~(m >>= f) >>= g == m >>= (\x \rightarrow f x >>= g) - associativity
+*** DONE Maybe monad
+CLOSED: [2017-03-26 вс 17:30]
+#+BEGIN_SRC haskell
+data Maybe a = Just a | Nothing
+
+instance Monad Maybe where
+    return = Just
+    Nothing >>= _ = Nothing
+    Just x >>= f  = f x
+
+Just 5 >>= (\x \rightarrow Just $ x + 3) -- Just 8
+Just 5 >>= (\x \rightarrow return $ x + 3) -- Just 8
+Nothing >>= (\x \rightarrow return $ x + 3) -- Nothing
+#+END_SRC
+*** DONE Identity monad
+CLOSED: [2017-03-26 вс 17:31]
+#+BEGIN_SRC haskell
+newtype Identity a = Identity { runIdentity :: a }
+
+instance Monad Identity where
+    return = Identity
+    i >>= f = f $ runIdentity i
+#+END_SRC
+*** DONE Either monad
+CLOSED: [2017-03-26 вс 17:31]
+#+BEGIN_SRC haskell
+data Either a b = Left a | Right b
+Either :: * \rightarrow * \rightarrow *
+
+instance Monad (Either a) where
+    return = Right
+    Left l >>= _  = Left l
+    Right r >>= f = f r
+#+END_SRC
+*** DONE Monad composition
+CLOSED: [2017-03-26 вс 17:34]
+#+BEGIN_SRC haskell
+(.) :: (b \rightarrow c) \rightarrow (a \rightarrow b) \rightarrow a \rightarrow c
+(<=<) :: Monad m \Rightarrow (b \rightarrow m c) \rightarrow (a \rightarrow m b) \rightarrow a \rightarrow m c
+(>=>) :: Monad m \Rightarrow (a \rightarrow m b) \rightarrow (b \rightarrow m c) \rightarrow a \rightarrow m c
+
+m >>= (f >=> g) == m >>= f >>= g
+m >>= (f <=< g) == m >>= g >>= f
+(f >=> g) >=> h == f >=> (g >=> h) -- associativity
+
+safeTail :: [a] \rightarrow Maybe [a]
+safeInit :: [a] \rightarrow Maybe [a]
+safeStrip :: [a] \rightarrow Maybe [a]
+safeStrip = safeTail >=> safeInit
+#+END_SRC
+*** DONE List monad
+CLOSED: [2017-03-26 вс 17:35]
+#+BEGIN_SRC haskell
+instance Monad [] where
+    return x = [x]
+    l >>= f = concat (map f l)
+#+END_SRC
+*** DONE Join
+CLOSED: [2017-03-26 вс 17:37]
+#+BEGIN_SRC haskell
+join :: Monad m \Rightarrow m (m a) \rightarrow m a
+join [[1,2],[3,4]] -- [1,2,3,4]
+join Just (Just 5) -- Just 5
+#+END_SRC
+~extract :: Monad m \Rightarrow m a \rightarrow a~ не можем определить, так как не
+всегда можем вытащить значение из монады. Например, не очень
+понятно, что делать в таком случае:
+#+BEGIN_SRC haskell
+extract :: Maybe Int \rightarrow Int
+extract Just x = x
+extract Nothing = ???
+#+END_SRC
+*** DONE Полезные функции для монад
+CLOSED: [2017-03-26 вс 17:40]
+1. ~Control.Monad~:
+#+BEGIN_SRC haskell
+liftM :: Monad m \Rightarrow (a \rightarrow b) \rightarrow m a \rightarrow m b
+liftM2 :: Monad m \Rightarrow (a \rightarrow b \rightarrow c) \rightarrow m a \rightarrow m b \rightarrow m c
+liftM2 (+) (Just 1) (Just 2) -- Just 3
+maybePair = liftM2 (,)
+#+END_SRC
+2. ~Control.Monad.Extra~:
+#+BEGIN_SRC haskell
+ifM :: Monad m \Rightarrow m Bool \rightarrow m a \rightarrow m a \rightarrow m a
+(||^) :: Monad m \Rightarrow m Bool \rightarrow m Bool \rightarrow m Bool
+Just False ||^ Just True -- Just True
+#+END_SRC
+** DONE [10/10] Lecture 6: Functors, Applicative Functors
+CLOSED: [2017-03-26 вс 18:34]
+*** DONE Functor
+CLOSED: [2017-03-26 вс 17:43]
+#+BEGIN_SRC haskell
+class Functor f where -- f :: * \rightarrow *
+    fmap :: (a \rightarrow b) \rightarrow f a \rightarrow f b
+    (<$) :: a \rightarrow f b \rightarrow f a
+
+3 <$ Just 5 -- Just 3
+
+instance Functor Maybe where
+    fmap f (Just x) = Just f x
+    fmap _ Nothing  = Nothing
+
+(<$>) :: Functor f \Rightarrow (a \rightarrow b) \rightarrow f a \rightarrow f b
+(<$>) = fmap
+
+instance Functor [] where
+    fmap = map
+
+instance Functor ((\rightarrow) r) where
+    fmap = (.)
+
+let foo = fmap (+3) (+2)
+foo 10 -- 15
+#+END_SRC
+Законы функтора:
+1. ~fmap id == id~
+2. ~fmap (f . g) == fmap f . fmap g~
+*** DONE Bifunctor
+CLOSED: [2017-03-26 вс 17:47]
+#+BEGIN_SRC haskell
+class Bifunctor p where
+    bimap  :: (a \rightarrow b) \rightarrow (c \rightarrow d) \rightarrow p a c \rightarrow p b d
+
+    first  :: (a \rightarrow b)           \rightarrow p a c \rightarrow p b c
+    second ::           (b \rightarrow c) \rightarrow p a b \rightarrow p a c
+
+instance Bifunctor (,) where
+    bimap f g (a, b) = (f a, g b)
+
+instance Bifunctor Either where
+    bimap f _ (Left a)  = Left (f a)
+    bimap _ g (Right b) = Right (g b)
+
+instance Bifunctor (\rightarrow) where -- не определен вроде как
+#+END_SRC
+Законы бифунктора:
+1. ~bimap id == id~
+~first id == id~
+~second id == id~
+2. ~bimap f g == first f . second g~
+3. ~bimap (f . g) (h . i) == bimap f h . bimap g i~
+~first (f . g) == first f . first g~
+~second (h . i) == second h . second i~
+*** DONE Applicative
+CLOSED: [2017-03-26 вс 17:55]
+#+BEGIN_SRC haskell
+class Functor f \Rightarrow Applicative f where
+    pure :: a \rightarrow f a
+    (<*>) :: f (a \rightarrow b) \rightarrow f a \rightarrow f b
+
+    (*>) :: f a \rightarrow f b \rightarrow f b
+    (<*) :: f a \rightarrow f b \rightarrow f a
+
+instance Applicative Maybe where
+    pure x = Just x
+    Nothing <*> _ = Nothing
+    Just f <*> x  = fmap f x
+
+instance Applicative [] where
+    pure x = [x]
+    fs <*> xs = [f x | f \leftarrow fs, x \leftarrow xs]
+
+newtype ZipList a = ZipList { getZipList :: [a] }
+
+instance Applicative ZipList where
+    pure x = ZipList (repeat x)
+    ZipList fs <*> ZipList xs = ZipList (zipWith id fs xs)
+
+instance Applicative ((\rightarrow) r) where
+    pure x = \_ \rightarrow x
+    f <*> g = \x \rightarrow f x (g x)
+
+-- Examples
+(pure 3) "blah" -- 3
+(+) <$> (+3) <*> (*100) $ 5 -- 508
+(\x y z \rightarrow [x,y,z]) <$> (+3) <*> (*2) <*> (/2) $ 5 -- [8.0,10.0,2.5]
+#+END_SRC
+Законы аппликатива:
+1. ~pure id <*> v == v~ - identity
+2. ~pure (.) <*> u <*> v <*> w == u <*> (v <*> w)~ - composition
+3. ~pure f <*> pure x == pure (f x)~ - homomorphism
+4. ~u <*> pure y == pure ($ y) <*> u~ - interchange
+*** DONE liftAN и стиль программирования с аппликативами
+CLOSED: [2017-03-26 вс 18:02]
+#+BEGIN_SRC haskell
+liftA2 :: Applicative f \Rightarrow (a \rightarrow b \rightarrow c) \rightarrow f a \rightarrow f b \rightarrow f c
+liftA3 :: Applicative f \Rightarrow (a \rightarrow b \rightarrow b \rightarrow d) \rightarrow f a \rightarrow f b \rightarrow f c \rightarrow f d
+
+(*) <$> Just 5 <*> Just 3 -- Just 15
+liftA2 (*) (Just 5) (Just 3) -- Just 15
+
+isUpperOrDigit :: Char \rightarrow Bool
+isUpperOrDigit = liftA2 (||) isUpper isDigit
+
+isUpperOrDigit 'A' -- True
+isUpperOrDigit '3' -- True
+isUpperOrDigit 'a' -- False
+
+-- Программирование с аппликативами
+data User = User { userFirstName :: String
+                 , userLastName :: String
+                 , userEmail :: String
+                 }
+
+type Profile = [(String, String)]
+
+profileExample = [("first_name", "Pat"),("last_name", "Brisbin"),("email", "me@a.com")]
+lookup "first_name" p :: Maybe String
+
+buildUser :: Profile \rightarrow Maybe User
+buildUser p = User
+    <$> lookup "first_name" p
+    <*> lookup "last_name" p
+    <*> lookup "email" p
+
+buildUser' :: Profile \rightarrow Maybe User
+buildUser' p = liftA3 User
+                      (lookup "first_name" p)
+                      (lookup "last_name" p)
+                      (lookup "email" p)
+
+buildUser'' :: Profile \rightarrow Maybe User
+buildUser'' = liftA3 (liftA3 User)
+                     (lookup "first_name")
+                     (lookup "last_name")
+                     (lookup "email")
+#+END_SRC
+*** DONE Alternative
+CLOSED: [2017-03-26 вс 18:05]
+#+BEGIN_SRC haskell
+class Applicative f \Rightarrow Alternative f where
+    empty :: f a
+    (<|>) :: f a \rightarrow f a \rightarrow f a
+
+instance Alternative Maybe where
+    empty = Nothing
+    Nothing <|> r = r
+    l <|> _       = l
+
+instance Alternative [] where
+    empty = []
+    (<|>) = (++)
+
+Nothing <|> Just 3 <|> empty <|> Just 5 -- Just 3
+[] <|> [1,2,3] <|> [4] -- [1,2,3,4]
+
+guard :: (Alternative f) \Rightarrow Bool \rightarrow f ()
+guard True  = pure ()
+guard False empty
+
+evenPair :: (Alternative m, Monad m, Integral a, Integral b) \Rightarrow m a \rightarrow m b \rightarrow m (a, b)
+evenPair a b =
+    a >>= \x \rightarrow
+    b >>= \y \rightarrow
+    guard (even x && even y) >>
+    return (x, y)
+
+evenPair (Just 2) (Just 4) -- Just (2, 4)
+evenPair (Just 2) (Just 5) -- Nothing
+#+END_SRC
+*** DONE List comprehension sugar
+CLOSED: [2017-03-26 вс 18:07]
+#+BEGIN_SRC haskell
+sweetPythags = [(x,y,z) | z \leftarrow [1..], x \leftarrow [1..z], y \leftarrow [x..z], x^2 + y^2 == z^2]
+take 2 sweetPythags -- [(3,4,5),(6,8,10)]
+
+pythagsWithoutSugar =
+    [1..] >>= \z \rightarrow
+    [1..z] >>= \x \rightarrow
+    [x..z] >>= \y \rightarrow
+    guard (x^2 + y^2 == z^2) >>
+    return (x,y,z)
+
+take 2 pythagsWithoutSugar -- [(3,4,5),(6,8,10)]
+#+END_SRC
+*** DONE Traversable type class
+CLOSED: [2017-03-26 вс 18:13]
+#+BEGIN_SRC haskell
+class (Functor t, Foldable t) \Rightarrow Traversable t where
+    traverse :: Applicative f \Rightarrow (a \rightarrow f b) \rightarrow t a \rightarrow f (t b)
+    sequenceA :: Applicative f \Rightarrow t (f a) \rightarrow f (t a)
+
+instance Traversable Maybe where
+    traverse _ Nothing = Nothing
+    traverse f (Just x) = Just <$> f x
+
+instance Traversable [] where
+    traverse f = foldr consF (pure [])
+      where
+        consF x ys = (:) <$> f x <*> ys
+
+half x = if even x then Just (x `div` 2) else Nothing
+traverse half [2, 4..10] -- Just [1,2,3,4,5]
+traverse half [1..10] -- Nothing
+
+rep x = replicate x x
+traverse rep [1..3] -- [[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3]]
+#+END_SRC
+Есть еще ~Bifoldable~ и ~Bitraversable~ по аналогии с ~Bifunctor~.
+*** DONE Automatic deriving (Functor, Foldable, Traversable)
+CLOSED: [2017-03-26 вс 18:15]
+Можно автоматически "отнаследовать" ~Functor~, ~Foldable~ и
+~Traversable~:
+#+BEGIN_SRC haskell
+{-# LANGUAGE DeriveFunctor #-} -- generates `fmap`
+{-# LANGUAGE DeriveFoldable #-} -- generates `foldr` and `foldMap`
+{-# LANGUAGE DeriveTraversable #-} -- generates `traverse`
+
+data Tree a = Left | Node a (Tree a) (Tree a)
+    deriving (Functor, Foldable, Traversable)
+#+END_SRC
+*** DONE [4/4] Type hierarchy proposals
+CLOSED: [2017-03-26 вс 18:25]
+**** DONE AMP (Applicative/Monad proposal)
+CLOSED: [2017-03-26 вс 18:17]
+Раньше аппликатив не был суперклассом монады, было много споров
+на эту тему и все такое. В итоге с так называемым AMP с версии
+~GHC 7.8.1~ аппликатив стал суперклассом монады:
+#+BEGIN_SRC haskell
+class Applicative m \Rightarrow Monad m where
+    ...
+#+END_SRC
+Как можно мигрировать существующий код:
+#+BEGIN_SRC haskell
+instance Applicative MyDataType where
+    pure = return
+    (<*>) = ap
+#+END_SRC
+**** DONE FTP (Foldable/Traversable proposal)
+CLOSED: [2017-03-26 вс 18:20]
+Если коротко, то суть в том, что взяли методы для списка из
+~Prelude~ и заменили их более общими методами с ~Foldable~ и
+~Traversable~. И еще добавили методов из ~Control.Monad~, тоже
+поменяв где-то на ~Foldable~ и ~Traversable~ списки. Собственно:
+#+BEGIN_SRC haskell
+-- replace such functions and some others
+length :: [a] \rightarrow Int
+null :: [a] \rightarrow Bool
+foldr :: (a \rightarrow b \rightarrow b) \rightarrow b \rightarrow [a] \rightarrow b
+
+-- with
+lenght :: Foldable f \Rightarrow f a \rightarrow Int
+null :: Foldable f \Rightarrow f a \rightarrow Bool
+foldr :: Foldable f \Rightarrow (a \rightarrow b \rightarrow b) \rightarrow b \rightarrow f a \rightarrow b
+#+END_SRC
+Из плюсов - теперь можно использовать для ~List~, ~Set~, ~Map~,
+~Maybe~ и т.д. Из минусов - такие спецэффекты:
+~length (1, 2) == 1~
+**** DONE MRP (Monad of no return/>> proposal)
+CLOSED: [2017-03-26 вс 18:23]
+Тут предлагается вынести нафиг из монады ~return~ и ~>>~. Внести
+их в ~Prelude~ с ограничением ~Applicative~. Сейчас:
+#+BEGIN_SRC haskell
+class Applicative m \Rightarrow Monad m where
+    (>>=) :: m a \rightarrow (a \rightarrow m b) \rightarrow m b
+    return :: a \rightarrow m a
+    return = pure
+
+    (>>) :: m a \rightarrow m b \rightarrow m b
+    m >> k = m >>= \_ \rightarrow k
+#+END_SRC
+Предлагается:
+#+BEGIN_SRC haskell
+class Applicative m \Rightarrow Monad m where
+    (>>=) :: m a \rightarrow (a \rightarrow m b) \rightarrow m b
+
+return :: Applicative f \Rightarrow a \rightarrow f a
+return = pure
+
+(>>) :: Applicative f \Rightarrow f a \rightarrow f b \rightarrow f b
+(>>) = (*>)
+#+END_SRC
+**** DONE MFP (MonadFail proposal)
+CLOSED: [2017-03-26 вс 18:25]
+Все просто. Выпилить ~fail~ из монады, создать новый класс
+типов ~MonadFail~ и впихнуть туда ~fail~. Сейчас:
+#+BEGIN_SRC haskell
+class Applicative m \Rightarrow Monad m where
+    ...
+    fail :: String \rightarrow m a
+#+END_SRC
+Предлагается:
+#+BEGIN_SRC haskell
+class Applicative m \Rightarrow Monad m where
+    ...
+
+class Monad m \Rightarrow MonadFail m where
+    fail :: String \rightarrow m a
+#+END_SRC
+*** DONE Type classes hierarchy
+CLOSED: [2017-03-26 вс 18:34]
+[[file:images/Type classes hierarchy diagram.png][Diagram]]
+** DONE [7/7] Lecture 7: Monads, part 2
+CLOSED: [2017-03-26 вс 20:20]
+*** DONE Writer monad
+CLOSED: [2017-03-26 вс 18:42]
+#+BEGIN_SRC haskell
+newtype Writer w a = Writer { runWriter :: (a, w) } -- a - значение, w - лог
+
+instance Monoid m \Rightarrow Monad (Writer w) where
+    return a = Writer (a, mempty)
+    Writer (x, v) >>= f = let Writer (y, v') = f x
+                          in Writer (y, v `mappend` v')
+
+tell :: w \rightarrow Writer w ()
+execWriter :: Writer w a \rightarrow w
+writer :: (a, w) \rightarrow Writer w a
+
+binPow :: Int \rightarrow Int \rightarrow Writer String Int
+binPow 0 _ = return 1
+binPow n a
+    | even n    = binPow (n `div` 2) a >>= \b \rightarrow
+                  tell ("Square " ++ show b ++ "\n") >>
+                  return (b * b)
+    | otherwise = binPow (n - 1) a >>= \b \rightarrow
+                  tell ("Mul " ++ show a ++ " and " ++ show b ++ "\n") >>
+                  return (a * b)
+
+binPow n a
+    | even n    = binPow (n `div` 2) a >>= \b \rightarrow
+                  writer (b * b, "Square " ++ show b ++ "\n")
+    | otherwise = binPow (n - 1) a >>= \b \rightarrow
+                  writer (a * b, "Mul " ++ show a ++ " and " ++ show b ++ "\n")
+#+END_SRC
+Есть некий трюк с монадой ~Writer~:
+#+BEGIN_SRC haskell
+listTellExample :: Writer [Int] ()
+listTellExample = tell [1] >> tell[2] >> tell[3]
+
+execWriter listTellExample -- [1,2,3]
+
+-- Можно сделать так:
+tell' :: a \rightarrow Writer [a] ()
+tell' = tell . (:[])
+
+listTell'Example :: Writer [Int] ()
+listTell'Example = tell' 1 >> tell' 2 >> tell' 3
+
+execWriter listTell'Example -- [1,2,3]
+#+END_SRC
+*** DONE Reader monad
+CLOSED: [2017-03-26 вс 18:48]
+#+BEGIN_SRC haskell
+newtype Reader e a = Reader { runReader :: e \rightarrow a }
+
+ask :: Reader e e
+asks :: (e \rightarrow a) \rightarrow Reader e a
+local :: (e \rightarrow b) \rightarrow Reader b a \rightarrow Reader e a
+
+instance Monad (Reader e) where
+    return a = Reader $ \_ \rightarrow a
+    m >>= f = Reader $ \r \rightarrow runReader (f $ runReader m r) r
+
+data Environment = Environment { name :: String
+                               , ids :: [Int]
+                               , manager :: String \rightarrow String
+                               }
+
+containsId :: Int \rightarrow Reader Environment Bool
+containsId i = asks (\env \rightarrow i `elem` ids env)
+
+safeCallManager :: Int \rightarrow Reader Environment (Maybe String)
+safeCallManager i = containsId i >>= \hasId \rightarrow
+                    if hasId
+                    then asks (\env \rightarrow Just $ manager env $ name env)
+                    else return Nothing
+
+runReader (safeCallManager 1) $ Environment "Ivan" [1,3] ("Hi, " ++) -- Just "Hi, Ivan"
+runReader (safeCallManager 2) $ Environment "Ivan" [1,3] ("Hi, " ++) -- Nothing
+#+END_SRC
+*** DONE Typed holes
+CLOSED: [2017-03-26 вс 18:58]
+Сначала немного абстрактных слов. Суть в том, что используя
+полиморфные типы, мы порой во время написания функции хотим
+узнать, как все они должны сочетаться. Мы хотим, чтобы компилятор
+мог нам с этим помочь. Чем-то это похоже на ~undefined~. Во время
+компиляции там, где стоят typed holes компилятор говорит, какой
+он хочет там тип. Еще он скажет, какие есть доступные
+“типо переменные” в данном контексте. Теперь пример:
+#+BEGIN_SRC haskell
+data Free f a = Pure a | Free (f (Free f a))
+
+
+instance Functor f \Rightarrow Monad (Free f) where
+    return = Pure
+    Pure a >>= f = f a
+    Free f >>= g = Free _
+
+{-
+Компилятор скажет такое:
+Found hole '_' with type f (Free f b)
+  Where: 'f' if a rigid type variable bound by
+             the instance declaration at holes.hs:26:10
+         'b' is a rigid type variable bound by
+             the type signature for
+                 >>= :: Free f a \rightarrow (a \rightarrow Free f b) \rightarrow Free f b
+             at FreeMonad.hs:10:10
+  Relevant bindings include
+    >>= :: Free f a \rightarrow (a \rightarrow Free f b) \rightarrow Free f b (bound at FreeMonad.hs:11:3)
+    f :: f (Free f a) (bound at FreeMonad.hs:11:8)
+    g :: a \rightarrow Free f b (bound at FreeMonad.hs:11:14)
+  In the first argument of 'Free', namely '_'
+  In the expression: Free (_)
+  In an equation for '>>=': (Free f) >>= g = Free (_)
+-}
+
+-- Теперь мы лучше представляем, что надо подставить на место '_'
+    Free f >>= g = Free (fmap _ f)
+
+{-
+Found hole '_' with type Free f a \rightarrow Free f b
+  (>>=) :: Free f a \rightarrow (a \rightarrow Free f b) \rightarrow Free f b
+  g ::                 a \rightarrow Free f b
+-}
+
+    Free f >>= g = Free (fmap (>>= g) f)
+
+-- Вот и готово
+#+END_SRC
+Types holes должны начинаться с ~_~. Еще примеры попроще:
+#+BEGIN_SRC haskell
+foo :: a \rightarrow b
+foo x = _
+-- Found hole '_' with type: b
+
+bar :: [Int]
+bar = map _f ["aba","caba"]
+-- Found hole '_f' with type: [Char] \rightarrow Int
+
+mfold :: [Maybe a] \rightarrow [Either a b]
+mfold = foldr _f _z
+-- Found hole '_f' with type: Maybe a \rightarrow [Either a b] \rightarrow [Either a b]
+-- Found hole '_z' with type: [Either a b]
+
+join :: m (m a) \rightarrow m a
+join m = m >>= _
+-- Found hole '_' with type: m a \rightarrow m a
+#+END_SRC
+*** DONE Partial type signatures
+CLOSED: [2017-03-26 вс 19:00]
+Можно указывать wildcard-ы в описаниях типов функций, если в начале
+написать ~{-# LANGUAGE PartialTypeSignatures #-}~:
+#+BEGIN_SRC haskell
+foo :: _ \rightarrow Bool
+foo x = not x
+#+END_SRC
+*** DONE State monad
+CLOSED: [2017-03-26 вс 19:12]
+Изменение состояния во время вычислений. В императивных языках просто
+меняем значение переменной. В функциональных языках создаем
+новую переменную с новым значением. Мотивирующий кейс для монады ~State~:
+#+BEGIN_SRC haskell
+type Stack = [Int]
+
+pop :: Stack \rightarrow (Int, Stack)
+push :: Int \rightarrow Stack \rightarrow Stack
+pop (x:xs) = (x, xs)
+push x s = x:s
+
+push :: Int \rightarrow Stack \rightarrow ((), Stack)
+push x s = ((), x:s)
+
+stackOps :: Stack \rightarrow (Int, Stack)
+stackOps s = let (x, xs)  = pop s
+                 (_, s')  = push 5 xs
+                 (_, res) = push 10 s'
+             in (x, res)
+
+stackOps [1,2,3] -- (1,[10,5,2,3])
+#+END_SRC
+Помощь - монада ~State~:
+#+BEGIN_SRC haskell
+-- import Control.Monad.State
+
+newtype State s a = State { runState :: s \rightarrow (a, s) }
+
+instance Monad (State s) where
+    return a = State $ \s \rightarrow (a, s)
+    oldState >>= f = State $ \s \rightarrow let (a, newState) = runState oldState s
+                                  in runState (f a) newState
+#+END_SRC
+Вот теперь напишем нашу реализацию стека, используя монаду ~State~:
+#+BEGIN_SRC haskell
+type Stack = [Int]
+
+pop :: State Stack Int
+pop = state $ \(x:xs) \rightarrow (x, xs)
+
+push :: Int \rightarrow State Stack ()
+push x = state $ \xs \rightarrow ((), x:xs)
+
+stackOps :: State Stack Int
+stackOps = pop >>= \x \rightarrow push 5 >> push 10 >> return x
+#+END_SRC
+Пример с обходом в глубину:
+#+BEGIN_SRC haskell
+type Vertex = Int
+type Graph = [[Vertex]]
+
+dfs :: Vertex \rightarrow Vertex \rightarrow Graph \rightarrow Bool
+dfs from to graph = evalState (reach from) []
+  where
+    -- state represented as list of visited vertices
+    reach :: Vertex \rightarrow State [Vertex] Bool
+    reach v
+        | v == to   = return True
+        | otherwise = get >>= \visited \rightarrow
+                      if v `elem` visited
+                      then return False
+                      else put (v:visited) >>
+                           or <$> mapM reach (graph !! v)
+#+END_SRC
+Полезные функции:
++ ~get :: State s s~
++ ~put :: s \rightarrow State s ()~
++ ~modify :: (s \rightarrow s) \rightarrow State s ()~
++ ~gets :: (s \rightarrow a) \rightarrow State s a~
++ ~withState :: (s \rightarrow s) \rightarrow State s a \rightarrow State s a~
++ ~evalState :: State s a \rightarrow s \rightarrow a~
++ ~execState :: State s a \rightarrow s \rightarrow a~
+*** DONE RWS monad
+CLOSED: [2017-03-26 вс 19:15]
+#+BEGIN_SRC haskell
+newtype RWS r w s a = RWST { runRWS :: r \rightarrow s \rightarrow (a, s, w) }
+
+-- now
+runRWS :: RWS r w s a \rightarrow r \rightarrow s \rightarrow (a, s, w)
+execRWS :: RWS r w s a \rightarrow r \rightarrow s \rightarrow (s, w)
+evalRWS :: TES r w s a \rightarrow r \rightarrow s \rightarrow (a, w)
+
+import Control.Monad.RWS
+
+type R = Int
+type W = [Int]
+type S = Int
+
+computation :: RWS R W S ()
+computation = do e \leftarrow ask
+                 a \leftarrow get
+                 let b = a + e
+                 put b
+                 tell [b]
+
+example = runRWS computation 2 3
+#+END_SRC
+*** DONE Cont monad and Continuation Passing Style (CPS)
+CLOSED: [2017-03-26 вс 20:20]
+Для анонимных callback-ов:
+#+BEGIN_SRC haskell
+square :: Int \rightarrow Int
+square x = x * x
+
+pythagoras :: Int \rightarrow Int \rightarrow Int
+pythagoras x y = (+) (square x) (square y)
+
+addCPS :: Int \rightarrow Int \rightarrow ((Int \rightarrow r) \rightarrow r)
+addCPS x y = \k \rightarrow k (x + y)
+
+squareCPS :: Int \rightarrow ((Int \rightarrow r) \rightarrow r)
+squareCPS x = \k \rightarrow k (square x)
+
+pythagorasCPS :: Int \rightarrow Int \rightarrow ((Int \rightarrow r) \rightarrow r)
+pythagorasCPS x y = \k \rightarrow -- k :: (Int \rightarrow r) \rightarrow r
+    squareCPS x $ \x2 \rightarrow
+    squareCPS y $ \y2 \rightarrow
+    addCPS x2 y2 $ k -- addCPS x2 y2 :: (Int \rightarrow r) \rightarrow r
+
+pythagorasCPS 3 4 id -- 25
+
+map ($ 2) [(3*),(2+),(1-)] -- [6,4,-1]
+
+-- Now with Cont
+
+newtype Cont r a = Cont { runCont :: (a \rightarrow r) \rightarrow r }
+cont :: ((a \rightarrow r) \rightarrow r) \rightarrow Cont r a
+
+runCont (cont ($ 2)) `map` [(3*),(2+),(1-)] -- [6,4,-1]
+runCont (cont ($ 2)) id -- 2
+
+addCPS :: Int \rightarrow Int \rightarrow Cont r Int
+addCPS x y = cont $ \k \rightarrow k (x + y)
+
+squareCPS :: Int \rightarrow Cont r Int
+squareCPS x = cont $ \k \rightarrow k (square x)
+
+pythagorasCPS :: Int \rightarrow Int \rightarrow Cont r Int
+pythagorasCPS x y = cont $ \k \rightarrow
+    runCont (squareCPS x) $ \x2 \rightarrow
+    runCont (squareCPS y) $ \y2 \rightarrow
+    runCont (addCPS x2 y2) $ k
+
+runCont (pythagorasCPS 3 4) id -- 25
+
+-- Now with Cont Monad
+
+newtype Cont r a = Cont { runCont :: (a \rightarrow r) \rightarrow r }
+
+instance Monad (Cont r) where
+    return a = Cont ($ a)
+    Cont arr >>= f = Cont $ \br \rightarrow arr $ \a \rightarrow runCont (f a) br
+
+    -- arr :: (a \rightarrow r) \rightarrow r
+    -- br  :: (b \rightarrow r)
+    -- f   :: a \rightarrow Cont r b
+
+addCPS :: Int \rightarrow Int \rightarrow Cont r Int
+addCPS x y = return $ x + y
+
+squareCPS :: Int \rightarrow Cont r Int
+squareCPS = return . square
+
+pythagorasCPS :: Int \rightarrow Int \rightarrow Cont r Int
+pythagorasCPS x y = squareCPS x >>= \x2 \rightarrow
+                    squareCPS y >>= \y2 \rightarrow
+                    addCPS x2 y2
+#+END_SRC
+Круто для:
+1. Представления программы для компилятора
+2. Введения callback-ов
+3. Оптимизации хвостовой рекурсии
+4. Обработки ошибок
+5. Построения подпрограмм
+#+BEGIN_SRC haskell
+class Monad m \Rightarrow MonadCont m where
+    callCC :: ((a \rightarrow m b) \rightarrow m a) \rightarrow m a -- call-with-current-continuation
+
+instance MonadCont (Cont r) where
+    callCC :: ((a \rightarrow Cont r b) \rightarrow Cont r a) \rightarrow Cont r a
+    callCC f = cont $ \c \rightarrow runCont (f (\x \rightarrow cont $ \_ \rightarrow c x)) c
+#+END_SRC
+~callCC~ дает нам обратно явный контроль над continuations:
+#+BEGIN_SRC haskell
+foo :: Int \rightarrow Cont r String
+foo x = callCC $ \earlyReturn \rightarrow
+    let y = x ^ 2 + 3 in
+    when (y > 20) (earlyReturn "over twenty") >>
+    return (show $ y - 4)
+
+runCont (foo 2) putStrLn -- 3
+runCont (foo 10) putStrLn -- over twenty
+#+END_SRC
+** TODO [0/0] Lecture 8: RealWorld
+** DONE [7/7] Lecture 9: Monad Transformers
+CLOSED: [2017-03-26 вс 21:07]
+*** DONE Композиция монад
+CLOSED: [2017-03-26 вс 20:23]
+Хотим композицию ~Reader~ и ~State~, например, но:
+1. У ~Reader~ нет ~put~
+2. У ~State~ нет ~ask~
+
+Пути решения:
+1. ~RWS~ - есть лишний ~Writer~
+2. Использовать только ~State~ - недостаточно ограничений на типы
+
+На помощь приходят трансформеры монад:
+#+BEGIN_SRC haskell
+foo :: ReaderT Int (State [Int]) Int -- or StateT [Int] (Reader Int) Int
+foo i = do
+    baseCounter \leftarrow ask
+    let newCounter = baseCounter + i
+    put [baseCounter, newCounter]
+    return newCounter
+#+END_SRC
+*** DONE Пример с MaybeIO
+CLOSED: [2017-03-26 вс 20:29]
+Сначала было так:
+#+BEGIN_SRC haskell
+do
+    mc1 \leftarrow tryConnect "host1"
+    case mc1 of
+        Nothing \rightarrow return Nothing
+        Just c1 \rightarrow do
+            mc2 \leftarrow tryConnect "host2"
+            case mc2 of
+                Nothing \rightarrow return Nothing
+                Just c2 \rightarrow do
+                    ...
+#+END_SRC
+Теперь попробуем скомбинировать ~Maybe~ и ~IO~:
+#+BEGIN_SRC haskell
+newtype MaybeIO a = MaybeIO { runMaybeIO :: IO (Maybe a) }
+
+instance Monad MaybeIO where
+    return x = MaybeIO (return (Just x))
+    MaybeIO action >>= f = MaybeIO $ do
+        retult \leftarrow action
+        case result of
+            Nothing \rightarrow return Nothing
+            Just x \rightarrow runMaybeIO (f x)
+
+result \leftarrow runMaybeIO $ do
+    c1 \leftarrow MaybeIO $ tryConnect "host1"
+    c2 \leftarrow MaybeIO $ tryConnect "host2"
+    ...
+#+END_SRC
+Имеем право захотеть вот такое:
+#+BEGIN_SRC haskell
+result \leftarrow runMaybeIO $ do
+    c1 \leftarrow MaybeIO $ tryConnect "host1"
+    print "Hello"
+    c2 \leftarrow MaybeIO $ tryConnect "host2"
+#+END_SRC
+Трансформируем ~IO~ в ~MaybeIO~:
+#+BEGIN_SRC haskell
+transformIO2MaybeIO :: IO a \rightarrow MaybeIO a
+transformIO2MaybeIO action = MaybeIO $ do
+    result \leftarrow action
+    return (Just result)
+
+result \leftarrow runMaybeIO $ do
+    c1 \leftarrow MaybeIO $ tryConnect "host1"
+    transformIO2MaybeIO $ print "Hello"
+    c2 \leftarrow MaybeIO $ tryConnect "host2"
+    ...
+#+END_SRC
+*** DONE MaybeT transformer
+CLOSED: [2017-03-26 вс 20:35]
+Дженеричная версия ~MaybeIO~ по сути:
+#+BEGIN_SRC haskell
+newtype MaybeT m a = { runMaybeT :: m (Maybe a) }
+
+instance Monad m \Rightarrow Monad (MaybeT m) where
+    return x = MaybeT (return (Just x))
+    MaybeT action >>= f = MaybeT $ do
+        result \leftarrow action
+        case result of
+            Nothing \rightarrow return Nothing
+            Just x \rightarrow runMaybeT (f x)
+
+transformToMaybeT :: Monad m \Rightarrow m a \rightarrow MaybeT m a
+transformToMaybeT action = MaybeT $ do
+    result \leftarrow action
+    return (Just result)
+
+class MonadTrans t where -- t :: (* \rightarrow *) \rightarrow * \rightarrow *
+    lift :: Monad m \Rightarrow m a \rightarrow t m a
+
+instance MonadTrans MaybeT where
+    lift = transformToMaybeT
+
+emailIsValid :: String \rightarrow Bool
+emailIsValid email = '@' `elem` email
+
+askEmail :: MaybeT IO String
+askEmail = do
+    lift $ putStrLn "Input your email, please:"
+    email \leftarrow lift getLine
+    guard $ emailIsValid email
+    return email
+
+main :: IO ()
+main = do
+    email \leftarrow runMaybeT askEmail
+    case email of
+        Nothing \rightarrow putStrLn "Wrong email."
+        Just email' \rightarrow putStrLn $ "OK, your email is " ++ email'
+#+END_SRC
+*** DONE ReaderT transformer
+CLOSED: [2017-03-26 вс 20:47]
+Мотивирующий кейс:
+#+BEGIN_SRC haskell
+gitRoot = "/.git/"
+
+getPathToBranches :: Text \rightarrow Text
+getPathToBranches pathToRepo = "Branches: " <> pathToRepo <> gitRoot <> "branches"
+
+getPathToHooks :: Text \rightarrow Text
+getPathToHooks pathToRepo = "Hooks: " <> pathToRepo <> gitRoot <> "hooks"
+
+showRepoInternalDirectories :: Text \rightarrow Text
+showRepoInternalDirectories pathToRepo = let pathToBranches = getPathToBranches pathToRepo
+                                             pathToHooks    = getPathToHooks pathToRepo
+                                         in unlines [pathToBranches, pathToRepos]
+
+main :: IO ()
+main = do
+    pathToRepo \leftarrow readFile "my.conf"
+    let cleanPath = strip pathToRepo
+    let finalInfo = showRepoInternalDirectories cleanPath
+    putStrLn finalInfo
+#+END_SRC
+Теперь с трансформером:
+#+BEGIN_SRC haskell
+newtype ReaderT r m a = ReaderT { runReaderT :: r \rightarrow m a }
+type RepoPath = Text
+type PathReader = ReaderT RepoPath IO RepoPath
+
+getPathToBranches :: PathReader
+getPathToBranches = do
+    pathToRepo \leftarrow ask
+    return $ "Branches: " <> pathToRepo <> gitRoot <> "branches"
+
+showRepoInternalDirectories :: PathReader
+showRepoInternalDirectories = do
+    pathToBranches \leftarrow getPathToBranches
+    pathToHooks \leftarrow getPathToHooks
+    return $ unlines [pathToBranches, pathToHooks]
+
+main :: IO ()
+main = do
+    pathToRepo \leftarrow readFile "my.conf"
+    let cleanPath = strip pathToRepo
+    finalInfo \leftarrow runReaderT showRepoInternalDirectories cleanPath
+    putStrLn finalInfo
+#+END_SRC
+Сам трансформер:
+#+BEGIN_SRC haskell
+newtype ReaderT r m a = ReaderT { runReaderT :: r \rightarrow m a }
+
+type Reader r a = ReaderT r Identity a
+
+instance (Monad m) \Rightarrow Monad (ReaderT r m) where
+    return = lift . return
+    m >>= f = ReaderT $ \r \rightarrow do
+        a \leftarrow runReaderT m r
+        runReaderT (f a) r
+
+instance MonadTrans ReaderT where
+    lift m = ReaderT (const m) -- left ma = ReaderT $ \r \rightarrow ma
+#+END_SRC
+*** DONE StateT transformer
+CLOSED: [2017-03-26 вс 20:49]
+#+BEGIN_SRC haskell
+newtype StateT s m a = StateT { runStateT :: (s \rightarrow m (a, s)) }
+
+instance (Monad m) \Rightarrow Monad (StateT s m) where
+    return a = StateT $ \s \rightarrow return (a, s)
+    (StateT x) >>= f = StateT $ \s \rightarrow do
+        (v, s') \leftarrow x s -- get new value and state
+        runStateT (f v) s' -- pass them to f
+
+instance MonadTrans StateT where
+    lift m = StateT $ \s \rightarrow m >>= (\x \rightarrow return (x, s))
+#+END_SRC
+*** DONE Таблица трансформеров
+CLOSED: [2017-03-26 вс 20:58]
+| Base monad | Transformer | Original type | Combined type   |
+|------------+-------------+---------------+-----------------|
+| Maybe      | MaybeT      | Maybe a       | m (Maybe a)     |
+| Either     | EitherT     | Either a b    | m (Either a b)  |
+| Writer     | WriterT     | (a, w)        | m (a, w)        |
+| Reader     | ReaderT     | r \rightarrow a         | r \rightarrow m a         |
+| State      | StateT      | s \rightarrow (a, s)    | s \rightarrow m (a, s)    |
+| Cont       | ContT       | (a \rightarrow r) \rightarrow r   | (a \rightarrow m r) \rightarrow m r |
+*** DONE Mtl style of transformation
+CLOSED: [2017-03-26 вс 21:07]
+#+BEGIN_SRC haskell
+class Monad m \Rightarrow MonadReader r m | m \rightarrow r where
+    ask :: m r
+    local :: (r \rightarrow r) \rightarrow m a \rightarrow m a
+    reader :: (r \rightarrow a) \rightarrow m a
+
+-- good old simple implementation of all functions for Reader
+instance Monad m \Rightarrow MonadReader r (ReaderT r m) where
+    ...
+
+instance MonadReader r m \Rightarrow MonadReader r (StateT s m) where
+    ask = lift ask
+    local = mapStateT . local
+    reader = lift . reader
+
+class (Monad m) \Rightarrow MonadIO m where
+    liftIO :: IO a \rightarrow m a
+
+instance MonadIO IO where
+    liftIO = id
+
+instance MonadIO m \Rightarrow MonadIO (StateT s m) where
+    liftIO = lift . liftIO
+
+instance MonadIO m \Rightarrow MonadIO (ReaderT r m) where
+    liftIO = lift . liftIO
+#+END_SRC
+Безболезненная конвертация в mtl:
+#+BEGIN_SRC haskell
+-- Complx type for which we need to write all instances manually :(
+
+newtype M a = M (Environment \rightarrow MyState \rightarrow IO (a, MyState))
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
+-- Move all dirty work to compiler
+
+newtype M a = M (ReaderT Environment (StateT MyState IO) a)
+    deriving (Functor, Applicative, Monad, MonadIO
+        , MonadState MyState, MonadReader Environment)
+#+END_SRC
+Попробуем поработать с исключениями:
+#+BEGIN_SRC haskell
+class Monad m \Rightarrow MonadThrow m where
+    throwM :: Exception e \Rightarrow e \rightarrow m a
+
+instance MonadThrow Maybe where
+    throwM _ = Nothing
+
+instance MonadThrow IO where
+    throwM = Control.Exception.throwIO
+
+instance MonadThrow m \Rightarrow MonadThrow (StateT s m) where
+    throwM = lift . throwM
+
+class MonadThrow m \Rightarrow MonadCatch m where
+    catch :: Exception e \Rightarrow m a \rightarrow (e \rightarrow m a) \rightarrow m a
+
+instance MonadCatch IO where
+    catch = Control.Exception.catch
+#+END_SRC
+Нафиг нужен mtl? Просто в таком стиле есть дофига определенных
+~Monad*~ и это может быть удобно.
+** TODO [0/0] Lecture 10: Speeding up haskell
+** TODO [0/0] Lecture 11: Template Haskell and Lens
+** TODO [0/0] Lecture 12: Parallel and Concurrent Haskell
+** TODO [0/0] Lecture 13: Comonads
+** TODO [0/0] Lecture 14: Enterprise Haskell
+** TODO [0/0] Lecture 15: Advanced type features
+** TODO [0/0] Lecture 16: Idris
