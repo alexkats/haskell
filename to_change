@@ -1,9 +1,9 @@
-Rightarrow - &rArr;
-rightarrow - &rarr;
-leftarrow - &larr;
-eta - &eta;
-forall - &forall;
-in - &isin;
-times - &times;
-le - &le;
-equiv - &equiv;
+Rightarrow - &rArr; - C-x 8 RET RIGHT DOUBLE ARROW
+rightarrow - &rarr; - C-x 8 a >
+leftarrow - &larr; - C-x 8 a <
+eta - &eta; - C-x 8 RET SMALL GREEK LETTER ETA
+forall - &forall; - C-x 8 RET FOR ALL
+in - &isin; - C-x 8 RET ELEMENT OF
+times - &times; - C-x 8 RET MULTIPLICATION X
+le - &le; - C-x 8 _ <
+equiv - &equiv; - C-x 8 RET IDENTICAL TO
