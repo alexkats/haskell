@@ -1069,7 +1069,7 @@ Nothing <|> Just 3 <|> empty <|> Just 5 -- Just 3
 
 guard :: (Alternative f) ⇒ Bool → f ()
 guard True  = pure ()
-guard False empty
+guard False = empty
 
 evenPair :: (Alternative m, Monad m, Integral a, Integral b) ⇒ m a → m b → m (a, b)
 evenPair a b =
