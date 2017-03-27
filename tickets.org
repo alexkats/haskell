@@ -1434,13 +1434,20 @@ dfs from to graph = evalState (reach from) []
                            or <$> mapM reach (graph !! v)
 #+END_SRC
 Полезные функции:
-+ ~get :: State s s~
-+ ~put :: s → State s ()~
-+ ~modify :: (s → s) → State s ()~
-+ ~gets :: (s → a) → State s a~
-+ ~withState :: (s → s) → State s a → State s a~
-+ ~evalState :: State s a → s → a~
-+ ~execState :: State s a → s → a~
++ get
+~get :: State s s~
++ put
+~put :: s → State s ()~
++ modify
+~modify :: (s → s) → State s ()~
++ gets
+~gets :: (s → a) → State s a~
++ withState
+~withState :: (s → s) → State s a → State s a~
++ evalState
+~evalState :: State s a → s → a~
++ execState
+~execState :: State s a → s → a~
 *** DONE RWS monad
 CLOSED: [2017-03-26 вс 19:15]
 #+BEGIN_SRC haskell
