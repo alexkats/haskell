@@ -2374,8 +2374,8 @@ newtype StateT s m a = StateT { runStateT :: (s → m (a, s)) }
 
 instance (Monad m) ⇒ Monad (StateT s m) where
     return a = StateT $ \s → return (a, s)
-    (StateT x) >>= f = StateT $ \s → do
-        (v, s') ← x s -- get new value and state
+    m >>= f = StateT $ \s → do
+        (v, s') ← runStateT m s -- get new value and state
         runStateT (f v) s' -- pass them to f
 
 instance MonadTrans StateT where
