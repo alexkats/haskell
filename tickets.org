@@ -1,4 +1,4 @@
-* TODO [8/16] Билеты
+* TODO [9/16] Билеты
 ** DONE [5/5] Lecture 1: Why FP and Haskell
 CLOSED: [2017-03-26 вс 15:36]
 *** DONE Плюсы функциональной чистоты
@@ -1497,7 +1497,626 @@ foo x = callCC $ \earlyReturn \rightarrow
 runCont (foo 2) putStrLn -- 3
 runCont (foo 10) putStrLn -- over twenty
 #+END_SRC
-** TODO [0/0] Lecture 8: RealWorld
+** DONE [8/8] Lecture 8: RealWorld
+CLOSED: [2017-03-27 пн 02:17]
+*** DONE Building IO system from scratch
+CLOSED: [2017-03-26 вс 22:25]
+Хаскель является чистым языком, поэтому не очень понятно, как сделать ~getchar()~,
+как в плюсах, например. Попробуем сделать сами:
+#+BEGIN_SRC haskell
+getchar :: Char
+get2chars = [getchar, getchar]
+#+END_SRC
+Проблемы:
+1. Поскольку хаскель - чистый язык, то компилятор может просто
+забить на второй вызов функции ~getchar~ и взять значение из
+первого вызова.
+2. Даже если вызова будет 2, все равно мы не знаем, в каком
+порядке эти две функции будут вызваны.
+Решение:
+- Введем фейковый параметр для ~getchar~, чтобы компилятор считал
+все вызовы разными.
+#+BEGIN_SRC haskell
+getchar :: Int \rightarrow Char
+
+get2chars = [getchar 1, getchar 2]
+#+END_SRC
+Это решает первую проблему. Еще надо, чтобы ~get2chars~ тоже имел
+фейковый параметр, чтобы у него не было той же проблемы:
+#+BEGIN_SRC haskell
+getchar :: Int \rightarrow Char
+get2chars :: Int \rightarrow String
+
+get2chars _ = [getchar 1, getchar 2]
+#+END_SRC
+Теперь надо решить вторую проблему. Хаскель не дает никакого
+способа задать порядок вычислений, кроме зависимостей. Тогда
+добавим искусственную зависимость, которая не даст вычислиться
+второму ~getchar~, пока не вычислится первый. Для этого будем
+из ~getchar~ возвращать фейковый результат, который будет
+использоваться как параметр для второго вызова ~getchar~:
+#+BEGIN_SRC haskell
+getchar :: Int \rightarrow (Char, Int)
+
+get2chars _ = [a,b] where (a, i) = getchar 1
+                          (b, _) = getchar i
+#+END_SRC
+Теперь мы гарантируем, что ~a~ будет прочитано перед ~b~, потому
+что для чтения ~b~ необходимо значение ~i~, которое возвращается,
+когда читается значение ~a~.
+Проблема:
+- Компилятор слишком умный. Он может поверить, что внешняя функция
+~getchar~ действительно зависит от параметра, но для ~get2chars~ такай
+трюк уже не работает, компилятор увидит, что мы читерим, потому что
+забиваем на параметр. Поэтому он не обязан исполнять вызовы в том порядке,
+в котором нам нужно.
+Решение:
+- Давайте подсунем фейковый параметр от ~get2chars~ в первый вызов
+~getchar~. В этом случае компилятор не догадается, что этот параметр не
+используется.
+#+BEGIN_SRC haskell
+get2chars i0 = [a,b] where (a, i1) = getchar i0
+                           (b, i2) = getchar i1
+#+END_SRC
+Проблема:
+- Теперь такая же проблема преследует ~get2chars~. Если нужно вызвать
+2 раза, нужно определить порядок вызовов. Плохой случай:
+#+BEGIN_SRC haskell
+get4chars = [get2chars 1, get2chars 2] -- order of 'get2chars' calls isn't defined
+#+END_SRC
+Решение:
+- Решим таким же образом, как и с ~getchar~. Пусть ~get2chars~ тоже
+возвращает фейковое значение, которое может быть использовано в других
+вызовах.
+#+BEGIN_SRC haskell
+get2chars :: Int \rightarrow (String, Int)
+get2chars i0 = ([a,b], i2) where (a, i1) = getchar i0
+                                 (b, i2) = getchar i1
+
+get4chars i0 = (a ++ b) where (a, i1) = get2chars i0
+                              (b, i2) = get2chars i1
+#+END_SRC
+Таким образом мы незаметно построили целую монадическую систему
+ввода/вывода для хаскеля.
+*** DONE Introduce IO Monad
+CLOSED: [2017-03-26 вс 23:33]
+То, что дальше, не то, как есть на самом деле, но хорошо в целях обучения.
+#+BEGIN_SRC haskell
+main :: ReadWorld \rightarrow ((), RealWorld)
+#+END_SRC
+~RealWorld~ - фейковый тип, который используется вместо ~Int~ из
+предудыщих примеров. Собстенно вот как выглядит сам ~IO~:
+#+BEGIN_SRC haskell
+type IO a = RealWorld \rightarrow (a, RealWorld)
+#+END_SRC
+Таким образом видно, что у ~main~ тип ~IO ()~, у ~getchar~ тип
+~IO Char~ и т.д. Можно считать, что тип ~IO Char~ означает "взять
+текущий ~RealWorld~, сделать с ним что-то и вернуть ~Char~ и возможно
+измененный ~RealWorld~".
+#+BEGIN_SRC haskell
+getChar :: RealWorld \rightarrow (Char, RealWorld)
+
+main :: RealWorld \rightarrow ((), RealWorld)
+main world0 = let (a, world1) = getChar world0
+                  (b, world2) = getChar world1
+              in  ((), world2)
+#+END_SRC
+Есть 3 нюанса:
+1. Мы не можем опустить ни один из вызовов ~getChar~.
+2. Мы не можем поменять вызовы ~getChar~ местами.
+3. В теории мы можем дублировать вызовы ~getChar~, но на самом деле
+компиляторы никогда не дублируют вызовы в таких простых случая, иначе
+не будет никаких гарантий по скорости работы.
+
+Теперь о том, как на самом деле реализован ~IO~.
+#+BEGIN_SRC haskell
+newtype IO a = IO (State# RealWorld \rightarrow (# State# RealWorld, a #))
+
+{-# LANGUAGE MagicHash #-} -- allows using # in names
+
+data Mystery# a = Magic# a deriving (Show)
+
+Magic# 3 -- Magic# 3
+Magic# 3 :: Num a \Rightarrow Mystery# a
+#+END_SRC
+Нафиг надо? Просто соглашение, чтобы разделять boxed и unboxed типы.
+#+BEGIN_SRC haskell
+{-# LANGUAGE UnboxedTuples #-}
+
+duplicatedToUnbox :: a \rightarrow (# a, a #)
+duplicatedToUnbox x = (# x, x #)
+#+END_SRC
+В отличие от обычных, boxed кортежей, unboxed кортежи не требуют
+дополнительной памяти и не создают thunks. Тип является unboxed, если
+его представление не является указателем. Теперь вернемся к ~State#~
+и ~RealWorld~:
+#+BEGIN_SRC haskell
+newtype IO a = IO (State# RealWorld \rightarrow (# State# RealWorld, a #))
+
+data State# s
+{-
+State# - примитив, unlifted. У него есть один параметрический тип.
+Единственная цель этого параметра поддерживать различными состояния
+потоков. По сути ничем не представлен.
+-}
+
+data RealWorld
+{-
+RealWorld - полностью магия. Это примитив, unlifted. Мы никогда не
+работаем со значениями типа RealWorld, этот тип используется только
+в системе типов, для параметризации State#.
+-}
+#+END_SRC
+*** DONE [3/3] do notation
+CLOSED: [2017-03-27 пн 00:11]
+**** DONE Syntax sugar
+CLOSED: [2017-03-26 вс 23:59]
+#+BEGIN_SRC haskell
+(>>) :: IO a \rightarrow IO b \rightarrow IO b
+(action1 >> action2) world0 =
+    let (_, world1) = action1 world0
+        (b, world2) = action2 world1
+    in  (b, world2)
+
+putStrLn :: String \rightarrow IO ()
+
+main = do putStrLn "Hello!"
+main = putStrLn "Hello!"
+
+main = do putStrLn "What is your name?"
+          putStrLn "How old are you?"
+          putStrLn "Nice day!"
+
+main = (putStrLn "What is your name?") >>
+       (putStrLn "How old are you?") >>
+       (putStrLn "Nice day!")
+
+(>>=) :: IO a \rightarrow (a \rightarrow IO b) \rightarrow IO b
+(>>=) :: IO a \rightarrow (a \rightarrow RealWorld \rightarrow (b, RealWorld)) \rightarrow IO b
+
+(action1 >>= action2) world0 =
+    let (a, world1) = action1 world0
+        (b, world2) = action2 a world1
+    in  (b, world2)
+
+getLine :: IO String
+
+main = do s \leftarrow getLine
+          putStrLn s
+
+main = getLine
+       >>= \s \rightarrow putStrLn s
+
+main = getLine >>= putStrLn
+#+END_SRC
+~GHCi~ - бесконечный ~do~-блок внутри ~IO~.
+#+BEGIN_SRC haskell
+return :: a \rightarrow IO a
+return a world0 = (a, world0)
+
+getReversedLine :: IO String
+getReversedLine = do
+    s \leftarrow getLine
+    return $ reverse s
+
+main :: IO ()
+main = do
+    rs \leftarrow getReversedLine
+    putStrLn rs
+
+main :: IO ()
+main = do
+    s \leftarrow getLine
+    let rs = reverse s
+    putStrLn $ "Reversed input : " ++ rs
+
+main :: IO ()
+main =     getLine
+       >>= \s \rightarrow let rs = reverse s in
+           putStrLn $ "Reversed input : " ++ rs
+
+-- DO NOT DO THE FOLLOWING
+let s = getLine -- Doesn't read from console to 's'
+rs \leftarrow reverse s -- 'reverse s' is not a monadic action inside IO
+#+END_SRC
+**** DONE Applicative Do
+CLOSED: [2017-03-27 пн 00:08]
+Начиная с ~GHC 8~ появилась такая штука. Если возможно, компилятор
+может сделать desugar ~do~ для аппликатива:
+#+BEGIN_SRC haskell
+{-# LANGUAGE ApplicativeDo #-}
+
+appPair :: Applicative f \Rightarrow f a \rightarrow f b \rightarrow f (a, b)
+appPair a b = do
+    x \leftarrow a
+    y \leftarrow b
+    pure (x, y)
+
+-- Translates to
+(\x y \rightarrow (x, y)) <$> a <*> b
+
+appPair (Just 3) (Just 4) -- Just (3, 4)
+#+END_SRC
+Нафиг надо? Есть 2 причины:
+1. Синтаксис для аппликативов может быть немного странным и сложным
+в написании. Синтаксис с ~do~ выглядит более естественным. Для сравнения:
+#+BEGIN_SRC haskell
+(\x y z \rightarrow x*y + y*z + z*x) <$> expr1 <*> expr2 <*> expr3
+
+do x \leftarrow expr1; y \leftarrow expr2; z \leftarrow expr3; return (x*y + y*z + z*x)
+#+END_SRC
+2. Иногда аппликативный ~bind~ может быть более эффективным, чем
+монадический, и иногда это действительно важно.
+
+Иногда кстати требуется ограничение ~Monad~. А теперь веселый пример:
+#+BEGIN_SRC haskell
+do
+    x1 \leftarrow a
+    x2 \leftarrow b
+    x3 \leftarrow c x1
+    x4 \leftarrow d
+    return (x2, x3, x4)
+
+-- Translates to
+(\(x2, x3) x4 \rightarrow (x2, x3, x4)
+    <$> join ((\x1 x2 \rightarrow do
+                            x3 \leftarrow c x1
+                            return (x2, x3))
+               <$> a
+               <*> b)
+    <*> d)
+#+END_SRC
+**** DONE RebindableSyntax
+CLOSED: [2017-03-27 пн 00:11]
+Можно перегрузить ~do~-нотацию и другие вещи:
+#+BEGIN_SRC haskell
+{-# LANGUAGE RebindableSyntax #-}
+
+import Prelude hiding ((>>=))
+import qualified Control.Monad
+
+(>>=) :: IO a \rightarrow (a \rightarrow IO b) \rightarrow IO b
+m >>= f = putStrLn "Called my bind!" >> m Control.Monad.>>= f
+
+myReadLine :: IO String
+myReadLine = do
+    putStrLn "Before getLine"
+    s \leftarrow getLine
+    putStrLn "After getLine"
+    return s
+
+{-
+ghci> myReadLine
+Before getLine
+Called my bind!
+Hello!
+After getLine
+"Hello!"
+-}
+#+END_SRC
+Еще эта штука работает и с ~ApplicativeDo~. Еще пример:
+#+BEGIN_SRC haskell
+{-# LANGUAGE RebindableSyntax #-}
+
+import Prelude
+
+addNumbers = do
+    80
+    60
+    10
+    where (>>) = (+)
+
+addNumbers -- 150
+#+END_SRC
+Нафиг надо? Мы можем реализовывать всякие классные штуки (например,
+мьютексы, безопасные по типам), используя не только стандартные монады:
+~Effect monads~, ~Indexed monads~, ~Constraint monads~, ~Supermonads~. Пример:
+#+BEGIN_SRC haskell
+class EffectMonad m where
+    return :: a \rightarrow m e a
+    (>>=) :: m i a \rightarrow (a \rightarrow m j b) \rightarrow m (i <> j) b
+#+END_SRC
+*** DONE Mutable data: IORef and IOArray
+CLOSED: [2017-03-27 пн 00:52]
+В хаскеле все неизменяемое. Но что если хотим сделать что-то такое:
+#+BEGIN_SRC haskell
+main = do
+    let a0 = readVariable varA
+    let _  = writeVariable varA 1
+    let a1 = readVariable varA
+    print (a0, a1)
+#+END_SRC
+В этом случае куча проблем:
+1. Компилятор видит 2 вызова ~readVariable~ с одним параметром,
+так что он просто возьмет значение из первого вызова.
+2. Результат ~writeVariable~ не используется, так что компилятор
+просто выкинет этот вызов.
+3. Эти 3 вызова могут быть переставлены.
+
+Решить можно, если бахнем все это в ~IO~:
+#+BEGIN_SRC haskell
+import Data.IORef
+
+main = do varA \leftarrow newIORef 0 -- Create and initialize a new variable
+          a0 \leftarrow readIORef varA
+          writeIORef varA 1
+          a1 \leftarrow readIORef varA
+          print (a0, a1)
+#+END_SRC
+Здесь ~varA~ имеет тип ~IORef Int~, что означает, что переменная (ссылка)
+внутри монады ~IO~ хранит значение типа ~Int~. ~newIORef~ создает
+новую переменную (ссылку) и возвращает его, а потом действия используют
+эту ссылку. Значение, возвращаемое ~readIORef varA~ зависит не только от
+переменной, но и от момента, в который выполняется данная операция.
+
+Такие же штуки есть для массивов, хэш-таблиц и других изменяемых
+структур данных. Вот пример:
+#+BEGIN_SRC haskell
+import Data.Array.IO
+
+main = do arr \leftarrow newArray (1, 10) 37 :: IO (IOArray Int Int)
+          a \leftarrow readArray arr 1
+          writeArray arr 1 64
+          b \leftarrow readArray arr 1
+          print (a, b)
+
+-- (37, 64)
+#+END_SRC
+Тут сначала создается массив из 10 элементов со значением 37. Дальше
+все понятно вроде.
+
+Другие штуки, которые зависят от состояния, часто тоже реализованы
+с помощью ~IO~. Например, генератор случайных чисел:
+#+BEGIN_SRC haskell
+rand :: IO Int
+
+foreign import ccall
+    sin :: Double \rightarrow Double -- OK, чистая функция
+
+foreign import ccall
+    tell :: Int \rightarrow IO Int -- Нужно IO, так как результат бывает разным
+#+END_SRC
+*** DONE sequence_
+CLOSED: [2017-03-27 пн 00:57]
+Например, хотим запихнуть несколько ~IO~ действий в список:
+#+BEGIN_SRC haskell
+ioActions :: [IO ()]
+ioActions = [(print "Hello!"),
+             (putStr "just kidding"),
+             (getChar >> return ())
+            ]
+
+main = do head ioActions
+          ioActions !! 1
+          last ioActions
+#+END_SRC
+Но это выглядит не очень, поэтому можно сделать так:
+#+BEGIN_SRC haskell
+sequence_ :: [IO a] \rightarrow IO ()
+
+main = sequence_ ioActions
+
+sequence_ :: [IO a] \rightarrow IO ()
+sequence_ []     = return ()
+sequence_ (x:xs) = do x
+                      sequence_ xs
+#+END_SRC
+*** DONE Exceptions (catch, throwIO, custom exceptions, bracket, etc.)
+CLOSED: [2017-03-27 пн 01:14]
+Как делать ~throw~:
+#+BEGIN_SRC haskell
+throwIO :: Exception e \Rightarrow e \rightarrow IO a
+
+import Control.Exception (ArithException (..), catch, throwIO)
+import Control.Monad (when)
+
+readAndDivide :: IO Int
+readAndDivide = do
+    x \leftarrow readLn
+    y \leftarrow readLn
+    when (y == 0) $ throwIO DivideByZero
+    return $ x `div` y
+
+{-
+ghci> readAndDivide
+7
+3
+2
+
+ghci> readAndDivide
+3
+0
+"*** Exception: divide by zero"
+-}
+#+END_SRC
+Как делать ~catch~:
+#+BEGIN_SRC haskell
+catch :: Exception e \Rightarrow IO a \rightarrow (e \rightarrow IO a) \rightarrow IO a
+
+safeReadAndDivide :: IO Int
+safeReadAndDivide = readAndDivide `catch` \DivideByZero \rightarrow return (-1)
+
+{-
+ghci> safeReadAndDivide
+7
+3
+2
+
+ghci> safeReadAndDivide
+3
+0
+-1
+-}
+#+END_SRC
+Пара нюансов про исключения:
+1. ~IO~ может бросать любые исключения
+2. Не представлены в системе типов (но об этом позже)
+
+Как делать свои исключения:
+#+BEGIN_SRC haskell
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+
+import Control.Exception (Exception)
+import Data.Typeable (Typeable)
+
+data MyException = DummyException
+    deriving (Show, Typeable, Exception)
+
+{-
+ghci> throwIO DummyException
+"***" Exception: DummyException
+-}
+
+{-
+ghci> :{
+ghci| throwIO DummyException `catch` \DummyException \rightarrow
+ghci|     putStrLn "Dummy exception is thrown"
+ghci| :}
+Dummy exception is thrown
+-}
+#+END_SRC
+Теперь про ~try~, ~finally~ и ~bracket~:
+#+BEGIN_SRC haskell
+try :: Exception e \Rightarrow IO a \rightarrow IO (Either e a)
+tryJust :: Exception e \Rightarrow (e \rightarrow Maybe b) \rightarrow IO a \rightarrow IO (Either b a)
+
+finally :: IO a -- computation to run first
+        \rightarrow  IO b -- computation to run afterward (even if an exception was raised)
+        \rightarrow  IO a
+
+-- | Like 'finally', but only performs the final action
+-- if there was an exception raised by the computation.
+onException :: IO a \rightarrow IO b \rightarrow IO a
+
+bracket :: IO a       -- computation to run first ("acquire resource")
+        \rightarrow  (a \rightarrow IO b) -- computation to run last ("release resource")
+        \rightarrow  (a \rightarrow IO c) -- computation to run in-between
+        \rightarrow  IO c       -- returns the value from the in-between computation
+#+END_SRC
+*** DONE unsafePerformIO and unsafeInterleaveIO
+CLOSED: [2017-03-27 пн 02:04]
+Эти штуки используются, если мы хотим использовать ~IO~ внутри чистых
+функций. Реализовано примерно так:
+#+BEGIN_SRC haskell
+unsafePerformIO action = let (a, world1) = action createNewWorld
+                         in (world1 `seq` a)
+#+END_SRC
+Примеры:
+#+BEGIN_SRC haskell
+import System.IO.Unsafe
+
+foo :: ()
+foo = unsafePerformIO $ putStrLn "foo"
+
+bar :: String
+bar = unsafePerformIO $ do putStrLn "bar"
+                           return "baz"
+
+main = do let f = foo
+          putStrLn bar
+
+helper i = print i >> return i
+
+main = do
+    one \leftarrow helper 1
+    two \leftarrow helper 2
+    print $ one + two
+
+main = do
+    one \leftarrow helper 1
+    let two = unsafePerformIO $ helper 2
+    print $ one + two
+#+END_SRC
+Возможно 2 результата:
+1. Очевидный
+   1. Запустится ~helper 1~
+   2. Создастся thunk для запуска ~helper 2~
+   3. Вычислится ~one + two~, вынудив thunk ~helper 2~ вычислиться
+   4. Вывод результата ~one + two~
+2. С перестановкой вызовов
+   1. Создастся и вычислится thunk ~helper 2~
+   2. Запустится ~helper 1~
+   3. Вывод результата ~one + two~
+
+Теперь про ~unsafeInterleaveIO~.
+#+BEGIN_SRC haskell
+import System.IO.Unsafe
+
+helper i = print i >> return i
+
+main = do
+    one \leftarrow helper 1
+    two \leftarrow unsafeInterleaveIO $ helper 2
+    print $ one + two
+#+END_SRC
+Как это примерно выглядит:
+#+BEGIN_SRC haskell
+do
+    before
+    unsafeInterleaveIO side
+    after
+#+END_SRC
+Какое-то дерьмо из презентации, не хочу разбираться.
+*** DONE Efficient String representations: Text, ByteString
+CLOSED: [2017-03-27 пн 02:17]
+Можно использовать перегруженные строки:
+#+BEGIN_SRC haskell
+type String = [Char]
+
+{-# LANGUAGE OverloadedStrings #-}
+
+class IsString a where
+    fromString :: String \rightarrow a
+"foo" :: IsString a \Rightarrow a
+#+END_SRC
+Посмтрим на ~Text~:
+#+BEGIN_SRC haskell
+{-# LANGUAGE OverloadedStrings #-}
+
+import qualified Data.Text as T
+
+-- From pack
+myTStr1 :: T.Text
+myTStr1 = T.pack ("foo" :: String)
+
+-- From overloaded string literal
+myTStr2 :: T.Text
+myTStr2 = "bar"
+#+END_SRC
+Теперь ~ByteString~:
+#+BEGIN_SRC haskell
+{-# LANGUAGE OverloadedStrings #-}
+
+import qualified Data.ByteString       as S
+import qualified Data.ByteString.Char8 as S8
+
+-- From pack
+bstr1 :: S.ByteString
+bstr1 = S.pack ("foo" :: String)
+
+-- From overloaded string literal
+bstr2 :: S8.ByteString
+bstr2 = "bar"
+#+END_SRC
+Что когда использовать:
+1. Бинарные данные:
+   1. Ленивые запакованные данные - ~Data.ByteString.Lazy~
+   2. Строгие запакованные данные - ~Data.ByteString~
+2. Текст:
+   1. ASCII или 8-битные:
+      1. Запакованные ленивые - ~Data.ByteString.Lazy.Char8~
+      2. Запакованные строгие - ~Data.ByteString.Char8~, ~Data.CompactString.ASCII~ или ~Data.CompactString~ with ~Latin1~
+   2. Unicode
+      1. UTF-32:
+         1. Незапакованные ленивые - ~[Char]~
+      2. UTF-16:
+         1. Запакованные ленивые - ~Data.Text.Lazy~
+         2. Запакованные строгие - ~Data.Text~ или ~Data.CompactString.UTF-16~
+      3. UTF-8:
+         1. Незапакованные и ленивые - ~Codec.Binary.UTF8.Generic~
+         2. Запакованные и ленивые - ~Data.ByteString.Lazy.UTF8~
+         3. Запакованные и строгие - ~Data.CompactString.UTF8~ или ~Data.ByteString.UTF8~
 ** DONE [7/7] Lecture 9: Monad Transformers
 CLOSED: [2017-03-26 вс 21:07]
 *** DONE Композиция монад
@@ -1766,10 +2385,245 @@ instance MonadCatch IO where
 #+END_SRC
 Нафиг нужен mtl? Просто в таком стиле есть дофига определенных
 ~Monad*~ и это может быть удобно.
-** TODO [0/0] Lecture 10: Speeding up haskell
-** TODO [0/0] Lecture 11: Template Haskell and Lens
-** TODO [0/0] Lecture 12: Parallel and Concurrent Haskell
-** TODO [0/0] Lecture 13: Comonads
-** TODO [0/0] Lecture 14: Enterprise Haskell
-** TODO [0/0] Lecture 15: Advanced type features
+** TODO [0/12] Lecture 10: Speeding up haskell
+*** TODO List concatenation pitfalls and Difference List
+*** TODO foldr vs foldl vs foldl'_
+*** TODO WHNF (weak head normal form)
+*** TODO seq, deepseq, NFData
+*** TODO Irrefutable patterns
+*** TODO BangPatterns
+*** TODO Strict Haskell
+*** TODO Space leaks
+*** TODO Deforestation
+*** TODO Streal Fusion
+*** TODO ST monad (STRef, STArray)
+*** TODO Criterion
+** TODO [0/3] Lecture 11: Template Haskell and Lens
+*** TODO [0/2] Template Haskell
+**** TODO boilerplating tuple code
+**** TODO Generate Automatic Instances
+*** TODO [0/3] Lens
+**** TODO Creating our simple lens
+**** TODO Introducing real Lens'
+**** TODO Nice example with real lens (view, traversed, filtered, zoom)
+*** TODO Prism
+** TODO [0/9] Lecture 12: Parallel and Concurrent Haskell
+*** TODO Advantages of immutability and purity
+*** TODO Haskell parallelism with rpar and rseq
+*** TODO Threadscope
+*** TODO Strategies
+*** TODO Par monad examples
+*** TODO Difference between Parallelism and Concurrency
+*** TODO forkIO and MVar
+*** TODO Transactions: STM, TVar
+*** TODO Async
+** TODO [0/5] Lecture 13: Comonads
+*** TODO Comonad type class & motivation (Identity comonad)
+*** TODO [0/4] Zippers
+**** TODO List zipper
+**** TODO Zipper via derivative
+**** TODO Game of Life
+**** TODO Array Zipper (image processing)
+*** TODO [0/4] Comonads
+**** TODO Env
+**** TODO Traced
+**** TODO Stream (+ NonEmpty)
+**** TODO Store
+*** TODO codo-notation (aka method)
+*** TODO Comonad transformers
+** TODO [3/6] Lecture 14: Enterprise Haskell
+*** DONE [3/3] Build tools
+CLOSED: [2017-03-27 пн 02:27]
+**** DONE Cabal
+CLOSED: [2017-03-27 пн 02:24]
+Дерьмо, которое не стоит использовать как основную систему сборки.
+Есть файл ~.cabal~. Это некий ~Makefile~ для проектов на хаскеле. Там
+содержится мета-информация плюс что и как собирать. Workflow:
+#+BEGIN_SRC sh
+$ cabal init
+$ cabal sandbox init
+$ cabal install --only-dependencies
+$ cabal build
+#+END_SRC
+Артефакты будут в папке ~./dist/~. В общем ~Cabal~ сосет:)
+**** DONE Stack
+CLOSED: [2017-03-27 пн 02:26]
+Классная штука для сборки проектов на хаскеле. Что делает:
+1. Устанавливает ~GHC~ автоматически, в отдельное место
+2. Устанавливает все зависимости для проекта
+3. Собирает проект
+4. Тестирует проект
+
+Workflow:
+#+BEGIN_SRC sh
+$ stack new my-project
+$ cd my-project
+$ stack setup
+$ stack build my-project
+$ stack exec my-project-executable
+#+END_SRC
+**** DONE Nix
+CLOSED: [2017-03-27 пн 02:27]
+Короче какая-то тула для сборки тоже. Есть ссылка:
+[[https://www.reddit.com/r/haskell/comments/5gh2mx/what_is_your_haskell_dev_environmentworkflow/dasiz10/][Stack and Nix comparison]]
+*** DONE Testing: HSpec, QuickCheck
+CLOSED: [2017-03-27 пн 02:47]
+~HSpec~ - тула для юнит-тестов:
+#+BEGIN_SRC haskell
+-- file Spec.hs
+import Test.Hspec
+import Test.QuickCheck
+import Control.Exception (evaluate)
+
+main :: IO ()
+main = hspec $ do
+    describe "Prelude.head" $ do
+        it "returns the first element of a list" $ do
+            head [23..] `shouldBe` (23 :: Int)
+
+        it "throws an exception if used with an empty list" $ do
+            evaluate (head []) `shouldThrow` anyException
+#+END_SRC
+#+BEGIN_SRC sh
+$ runhaskell Spec.hs
+
+Prelude.head
+  returns the first element of a list
+  throws an exception if used with an empty list
+
+Finished in 0.0055 seconds
+2 examples, 0 failures
+#+END_SRC
+~QuickCheck~ - тула для тестирования каких-либо свойств:
+#+BEGIN_SRC haskell
+getList = find 5 where
+    find 0 = return []
+    find n = do
+        ch \leftarrow getChar
+        if ch `elem` ['a'..'e'] then do
+            tl \leftarrow find (n - 1)
+            return (ch : tl)
+        else
+            find n
+
+-- | A thin monadic skin layer
+getList :: IO [Char]
+getList = fmap take5 getContents
+
+-- | The actual worker
+take5 :: [Char] \rightarrow [Char]
+take5 = take 5 . filter (`elem` ['a'..'e'])
+#+END_SRC
+Простой пример:
+#+BEGIN_SRC haskell
+import Data.Char
+import Test.QuickCheck
+
+{-
+ghci> quickCheck ((\s \rightarrow s == s) :: [Char] \rightarrow Bool)
++++ OK, passed 100 tests.
+
+ghci> quickCheck ((\s \rightarrow (reverse.reverse) s == s) :: [Char] \rightarrow Bool)
++++ OK, passed 100 tests.
+-}
+#+END_SRC
+Собственно протестируем некоторые свойства:
+#+BEGIN_SRC haskell
+-- | \forall s . length (take5 s) \equiv 5
+{-
+ghci> quickCheck (\s \rightarrow length (take5 s) == 5)
+"*** Failed! Falsifiable (after 1 test):"
+""
+-}
+
+-- | \forall s . length (take5 s) \le 5
+{-
+ghci> quickCheck (\s \rightarrow length (take5 s) <= 5)
++++ OK, passed 100 tests.
+-}
+
+-- | \forall s . \forall e . e \in take5 s \Rightarrow e \in ['abcde']
+{-
+ghci> quickCheck (\s \rightarrow all (`elem` ['a'..'e']) (take5 s))
++++ OK, passed 100 tests.
+-}
+
+{-
+ghci> quickCheck (\s \rightarrow length (take5 s) < 5)
++++ Ok, passed 100 tests.
+-}
+
+deepCheck p = check (defaultConfig { configMaxTest = 10000 }) p
+
+{-
+ghci> deepCheck (\s \rightarrow length (take5 s) < 5)
+"*** Failed! Falsifiable (after 186 tests and 16 shrinks):"
+"aaaaa"
+-}
+
+{-
+ghci> verboseCheck ((\s \rightarrow length s < 3) :: [Integer] \rightarrow Bool)
+Passed:
+[]
+Failed:
+[1,3,-4]
+"*** Failed!"
+Passed:
+[3,-4]
+...
+Falsifiable (after 5 tests and 4 shrinks):
+[0,0,0]
+-}
+#+END_SRC
+*** DONE FFI
+CLOSED: [2017-03-27 пн 02:49]
+Расшифровывается Foreign Function Interface. Пример:
+#+BEGIN_SRC C
+/* clang -c simple.c -o simple.o */
+
+int example(int a, int b)
+{
+  return a + b;
+}
+#+END_SRC
+#+BEGIN_SRC haskell
+-- ghc simple.o simple_ffi.hs -o simple_ffi
+
+{-# LANGUAGE ForeignFunctionInterface #-}
+
+import Foreign.C.Types
+
+foreign import ccall safe "example"
+    example :: CInt \rightarrow CInt \rightarrow Cint
+
+main = print (example 42 27)
+#+END_SRC
+*** TODO [0/2] Databases
+**** TODO SQL
+**** TODO acid-state
+*** TODO Network.HTTP
+*** TODO Web.Scotty
+** TODO [0/7] Lecture 15: Advanced type features
+*** TODO [0/4] forall keyword
+**** TODO -XExplicitForall
+**** TODO -XExistensialQuantification
+**** TODO -XRank2Types
+**** TODO -XRankNTypes
+*** TODO [0/4] Examples for all
+**** TODO ShowBox
+**** TODO ST
+**** TODO Type constraints
+**** TODO Pattern matching on types
+*** TODO [0/2] GADTs
+**** TODO Type safe arithmetic expressions
+**** TODO Parsing to GADT
+*** TODO [0/4] -XDataKinds
+**** TODO Naturals
+**** TODO HList
+**** TODO Type level Symbols
+**** TODO Vectors with length in type
+*** TODO Extensible records
+*** TODO -XTypeApplications
+*** TODO -XTypeOperators
 ** TODO [0/0] Lecture 16: Idris
+А тем временем ~Idris~ идет куда подальше!!!
