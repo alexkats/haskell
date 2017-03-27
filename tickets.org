@@ -217,7 +217,7 @@ HOF (higher-order functions - функции высшего порядка) - п
 + partition
 ~partition even [2,4,5,2,7] == ([2,4,2],[5,7])~
 + takeWhile
-~takeWhile isUpper”HTMLXml” == ”HTMLX”~
+~takeWhile isUpper ”HTMLXml” == ”HTMLX”~
 + uncurry
 ~uncurry :: (a → b → c) → (a, b) → c~
 
